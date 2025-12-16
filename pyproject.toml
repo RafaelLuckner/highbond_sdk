@@ -58,10 +58,9 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/seu-usuario/highbond-sdk"
-Documentation = "https://highbond-sdk.readthedocs.io"
-Repository = "https://github.com/seu-usuario/highbond-sdk"
-Changelog = "https://github.com/seu-usuario/highbond-sdk/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/RafaelLuckner/highbond_sdk"
+Repository = "https://github.com/RafaelLuckner/highbond_sdkk"
+Changelog = "https://github.com/RafaelLuckner/highbond_sdk/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
