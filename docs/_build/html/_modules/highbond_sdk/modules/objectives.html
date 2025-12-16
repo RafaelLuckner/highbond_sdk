@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>highbond_sdk.modules.objectives &#8212; HighBond SDK  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for highbond_sdk.modules.objectives</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Módulo de Objetivos para o HighBond SDK.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Generator</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..http_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighBondHTTPClient</span><span class="p">,</span> <span class="n">PaginationMixin</span><span class="p">,</span> <span class="n">ThreadingMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..config</span><span class="w"> </span><span class="kn">import</span> <span class="n">PaginationConfig</span><span class="p">,</span> <span class="n">ThreadingConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectiveType</span>
+
+
+<div class="viewcode-block" id="ObjectivesModule">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ObjectivesModule">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ObjectivesModule</span><span class="p">(</span><span class="n">PaginationMixin</span><span class="p">,</span> <span class="n">ThreadingMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Módulo para gerenciamento de Objetivos no HighBond.</span>
+<span class="sd">    </span>
+<span class="sd">    Objetivos são unidades de trabalho dentro de projetos que definem</span>
+<span class="sd">    escopo e metas específicas.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">http_client</span><span class="p">:</span> <span class="n">HighBondHTTPClient</span><span class="p">,</span>
+        <span class="n">org_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">pagination_config</span><span class="p">:</span> <span class="n">PaginationConfig</span><span class="p">,</span>
+        <span class="n">threading_config</span><span class="p">:</span> <span class="n">ThreadingConfig</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            http_client: Cliente HTTP configurado.</span>
+<span class="sd">            org_id: ID da organização.</span>
+<span class="sd">            pagination_config: Configuração de paginação.</span>
+<span class="sd">            threading_config: Configuração de threading.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span> <span class="o">=</span> <span class="n">http_client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_org_id</span> <span class="o">=</span> <span class="n">org_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pagination_config</span> <span class="o">=</span> <span class="n">pagination_config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threading_config</span> <span class="o">=</span> <span class="n">threading_config</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_base_endpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Endpoint base para objetivos de um projeto.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;/orgs/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_org_id</span><span class="si">}</span><span class="s2">/projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/objectives&quot;</span>
+    
+<div class="viewcode-block" id="ObjectivesModule.list_by_project">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ObjectivesModule.list_by_project">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_by_project</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">page</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">page_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">include</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lista objetivos de um projeto com paginação manual.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto.</span>
+<span class="sd">            page: Número da página (1-based).</span>
+<span class="sd">            page_size: Itens por página (máximo 100).</span>
+<span class="sd">            include: Relacionamentos para incluir.</span>
+<span class="sd">            filters: Filtros adicionais.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Resposta completa da API.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; response = client.objectives.list_by_project(123)</span>
+<span class="sd">            &gt;&gt;&gt; for obj in response[&#39;data&#39;]:</span>
+<span class="sd">            ...     print(obj[&#39;attributes&#39;][&#39;title&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;page[number]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_page_number</span><span class="p">(</span><span class="n">page</span><span class="p">),</span>
+            <span class="s2">&quot;page[size]&quot;</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">page_size</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">include</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">include</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">filters</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">filters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">params</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;filter[</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">(</span><span class="n">project_id</span><span class="p">),</span> <span class="n">params</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ObjectivesModule.list_all_by_project">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ObjectivesModule.list_all_by_project">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_all_by_project</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_pages</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lista todos os objetivos de um projeto com paginação automática.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto.</span>
+<span class="sd">            include: Relacionamentos para incluir.</span>
+<span class="sd">            filters: Filtros adicionais.</span>
+<span class="sd">            max_pages: Máximo de páginas.</span>
+<span class="sd">            </span>
+<span class="sd">        Yields:</span>
+<span class="sd">            Cada objetivo individualmente.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; for obj in client.objectives.list_all_by_project(123):</span>
+<span class="sd">            ...     print(obj[&#39;attributes&#39;][&#39;title&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pagination</span> <span class="o">=</span> <span class="n">PaginationConfig</span><span class="p">(</span>
+            <span class="n">page_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pagination_config</span><span class="o">.</span><span class="n">page_size</span><span class="p">,</span>
+            <span class="n">max_pages</span><span class="o">=</span><span class="n">max_pages</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pagination_config</span><span class="o">.</span><span class="n">max_pages</span>
+        <span class="p">)</span>
+        
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">include</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">include</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">filters</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">filters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">params</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;filter[</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paginate</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">(</span><span class="n">project_id</span><span class="p">),</span> <span class="n">pagination</span><span class="p">,</span> <span class="n">params</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ObjectivesModule.get">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ObjectivesModule.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">objective_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtém um objetivo específico.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto.</span>
+<span class="sd">            objective_id: ID do objetivo.</span>
+<span class="sd">            include: Relacionamentos para incluir.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dados do objetivo.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; obj = client.objectives.get(123, 456)</span>
+<span class="sd">            &gt;&gt;&gt; print(obj[&#39;data&#39;][&#39;attributes&#39;][&#39;title&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">(</span><span class="n">project_id</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">objective_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">if</span> <span class="n">include</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">include</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">params</span> <span class="k">if</span> <span class="n">params</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ObjectivesModule.create">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ObjectivesModule.create">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ObjectiveType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">reference</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">position</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">owner_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">custom_attributes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cria um novo objetivo em um projeto.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto.</span>
+<span class="sd">            title: Título do objetivo (obrigatório).</span>
+<span class="sd">            description: Descrição do objetivo.</span>
+<span class="sd">            objective_type: Tipo do objetivo.</span>
+<span class="sd">            reference: Referência externa.</span>
+<span class="sd">            position: Posição na lista de objetivos.</span>
+<span class="sd">            start_date: Data de início real.</span>
+<span class="sd">            end_date: Data de término real.</span>
+<span class="sd">            planned_start_date: Data de início planejada.</span>
+<span class="sd">            planned_end_date: Data de término planejada.</span>
+<span class="sd">            owner_id: ID do proprietário.</span>
+<span class="sd">            custom_attributes: Atributos customizados.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dados do objetivo criado.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; obj = client.objectives.create(</span>
+<span class="sd">            ...     project_id=123,</span>
+<span class="sd">            ...     title=&quot;Revisão de Controles&quot;,</span>
+<span class="sd">            ...     objective_type=ObjectiveType.WALKTHROUGH</span>
+<span class="sd">            ... )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">title</span><span class="p">}</span>
+        
+        <span class="n">optional_attrs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">description</span><span class="p">,</span>
+            <span class="s2">&quot;objective_type&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">objective_type</span><span class="o">.</span><span class="n">value</span> 
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">objective_type</span><span class="p">,</span> <span class="n">ObjectiveType</span><span class="p">)</span> 
+                <span class="k">else</span> <span class="n">objective_type</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;reference&quot;</span><span class="p">:</span> <span class="n">reference</span><span class="p">,</span>
+            <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span>
+            <span class="s2">&quot;start_date&quot;</span><span class="p">:</span> <span class="n">start_date</span><span class="p">,</span>
+            <span class="s2">&quot;end_date&quot;</span><span class="p">:</span> <span class="n">end_date</span><span class="p">,</span>
+            <span class="s2">&quot;planned_start_date&quot;</span><span class="p">:</span> <span class="n">planned_start_date</span><span class="p">,</span>
+            <span class="s2">&quot;planned_end_date&quot;</span><span class="p">:</span> <span class="n">planned_end_date</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">optional_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">if</span> <span class="n">custom_attributes</span><span class="p">:</span>
+            <span class="n">attributes</span><span class="p">[</span><span class="s2">&quot;custom_attributes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">custom_attributes</span>
+        
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;objectives&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;attributes&quot;</span><span class="p">:</span> <span class="n">attributes</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">owner_id</span><span class="p">:</span>
+            <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;relationships&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;owner&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">owner_id</span><span class="p">)}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">(</span><span class="n">project_id</span><span class="p">),</span> <span class="n">payload</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ObjectivesModule.update">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ObjectivesModule.update">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">objective_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ObjectiveType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">reference</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">position</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">owner_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">custom_attributes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Atualiza um objetivo existente.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto.</span>
+<span class="sd">            objective_id: ID do objetivo.</span>
+<span class="sd">            title: Novo título.</span>
+<span class="sd">            description: Nova descrição.</span>
+<span class="sd">            objective_type: Novo tipo.</span>
+<span class="sd">            reference: Nova referência.</span>
+<span class="sd">            position: Nova posição.</span>
+<span class="sd">            start_date: Nova data de início.</span>
+<span class="sd">            end_date: Nova data de término.</span>
+<span class="sd">            planned_start_date: Nova data de início planejada.</span>
+<span class="sd">            planned_end_date: Nova data de término planejada.</span>
+<span class="sd">            owner_id: Novo proprietário.</span>
+<span class="sd">            custom_attributes: Novos atributos customizados.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dados do objetivo atualizado.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; obj = client.objectives.update(</span>
+<span class="sd">            ...     project_id=123,</span>
+<span class="sd">            ...     objective_id=456,</span>
+<span class="sd">            ...     title=&quot;Revisão de Controles - Atualizado&quot;</span>
+<span class="sd">            ... )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="n">optional_attrs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">title</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">description</span><span class="p">,</span>
+            <span class="s2">&quot;objective_type&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">objective_type</span><span class="o">.</span><span class="n">value</span> 
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">objective_type</span><span class="p">,</span> <span class="n">ObjectiveType</span><span class="p">)</span> 
+                <span class="k">else</span> <span class="n">objective_type</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;reference&quot;</span><span class="p">:</span> <span class="n">reference</span><span class="p">,</span>
+            <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span>
+            <span class="s2">&quot;start_date&quot;</span><span class="p">:</span> <span class="n">start_date</span><span class="p">,</span>
+            <span class="s2">&quot;end_date&quot;</span><span class="p">:</span> <span class="n">end_date</span><span class="p">,</span>
+            <span class="s2">&quot;planned_start_date&quot;</span><span class="p">:</span> <span class="n">planned_start_date</span><span class="p">,</span>
+            <span class="s2">&quot;planned_end_date&quot;</span><span class="p">:</span> <span class="n">planned_end_date</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">optional_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">if</span> <span class="n">custom_attributes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">attributes</span><span class="p">[</span><span class="s2">&quot;custom_attributes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">custom_attributes</span>
+        
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;objectives&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">objective_id</span><span class="p">),</span>
+                <span class="s2">&quot;attributes&quot;</span><span class="p">:</span> <span class="n">attributes</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">owner_id</span><span class="p">:</span>
+            <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;relationships&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;owner&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">owner_id</span><span class="p">)}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">(</span><span class="n">project_id</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">objective_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ObjectivesModule.delete">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ObjectivesModule.delete">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">objective_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exclui um objetivo.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto.</span>
+<span class="sd">            objective_id: ID do objetivo a excluir.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Resposta da API.</span>
+<span class="sd">            </span>
+<span class="sd">        Warning:</span>
+<span class="sd">            Esta ação é irreversível.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">(</span><span class="n">project_id</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">objective_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">endpoint</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">HighBond SDK</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Your Name.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,6 +1,6 @@
 # HighBond SDK
 
-![Version](https://img.shields.io/badge/version-0.0.2-blue.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-0.0.2-blue.svg)](https://github.com)
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

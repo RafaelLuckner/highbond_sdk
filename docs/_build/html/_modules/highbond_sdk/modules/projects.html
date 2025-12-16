@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>highbond_sdk.modules.projects &#8212; HighBond SDK  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for highbond_sdk.modules.projects</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Módulo de Projetos para o HighBond SDK.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Generator</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..http_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighBondHTTPClient</span><span class="p">,</span> <span class="n">PaginationMixin</span><span class="p">,</span> <span class="n">ThreadingMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..config</span><span class="w"> </span><span class="kn">import</span> <span class="n">PaginationConfig</span><span class="p">,</span> <span class="n">ThreadingConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectState</span><span class="p">,</span> <span class="n">ProjectStatus</span>
+
+
+<div class="viewcode-block" id="ProjectsModule">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProjectsModule</span><span class="p">(</span><span class="n">PaginationMixin</span><span class="p">,</span> <span class="n">ThreadingMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Módulo para gerenciamento de Projetos no HighBond.</span>
+<span class="sd">    </span>
+<span class="sd">    Projetos são containers de alto nível que organizam objetivos,</span>
+<span class="sd">    riscos, controles e issues.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">http_client</span><span class="p">:</span> <span class="n">HighBondHTTPClient</span><span class="p">,</span>
+        <span class="n">org_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">pagination_config</span><span class="p">:</span> <span class="n">PaginationConfig</span><span class="p">,</span>
+        <span class="n">threading_config</span><span class="p">:</span> <span class="n">ThreadingConfig</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            http_client: Cliente HTTP configurado.</span>
+<span class="sd">            org_id: ID da organização.</span>
+<span class="sd">            pagination_config: Configuração de paginação.</span>
+<span class="sd">            threading_config: Configuração de threading.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span> <span class="o">=</span> <span class="n">http_client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_org_id</span> <span class="o">=</span> <span class="n">org_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pagination_config</span> <span class="o">=</span> <span class="n">pagination_config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threading_config</span> <span class="o">=</span> <span class="n">threading_config</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_base_endpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Endpoint base para projetos.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;/orgs/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_org_id</span><span class="si">}</span><span class="s2">/projects&quot;</span>
+    
+<div class="viewcode-block" id="ProjectsModule.list">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">page</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">page_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">include</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lista projetos com paginação manual.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            page: Número da página (1-based).</span>
+<span class="sd">            page_size: Itens por página (máximo 100).</span>
+<span class="sd">            include: Relacionamentos para incluir (ex: [&#39;objectives&#39;, &#39;owner&#39;]).</span>
+<span class="sd">            filters: Filtros adicionais.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Resposta completa da API com data, meta e links.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; response = client.projects.list(page=1, page_size=25)</span>
+<span class="sd">            &gt;&gt;&gt; for project in response[&#39;data&#39;]:</span>
+<span class="sd">            ...     print(project[&#39;attributes&#39;][&#39;title&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;page[number]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_page_number</span><span class="p">(</span><span class="n">page</span><span class="p">),</span>
+            <span class="s2">&quot;page[size]&quot;</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">page_size</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">include</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">include</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">filters</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">filters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">params</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;filter[</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ProjectsModule.list_all">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.list_all">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_all</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">include</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_pages</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lista todos os projetos com paginação automática.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            include: Relacionamentos para incluir.</span>
+<span class="sd">            filters: Filtros adicionais.</span>
+<span class="sd">            max_pages: Máximo de páginas a buscar (None = todas).</span>
+<span class="sd">            </span>
+<span class="sd">        Yields:</span>
+<span class="sd">            Cada projeto individualmente.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; for project in client.projects.list_all():</span>
+<span class="sd">            ...     print(project[&#39;attributes&#39;][&#39;title&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pagination</span> <span class="o">=</span> <span class="n">PaginationConfig</span><span class="p">(</span>
+            <span class="n">page_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pagination_config</span><span class="o">.</span><span class="n">page_size</span><span class="p">,</span>
+            <span class="n">max_pages</span><span class="o">=</span><span class="n">max_pages</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pagination_config</span><span class="o">.</span><span class="n">max_pages</span>
+        <span class="p">)</span>
+        
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">include</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">include</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">filters</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">filters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">params</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;filter[</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paginate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">,</span> <span class="n">pagination</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ProjectsModule.list_project_types">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.list_project_types">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_project_types</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lista os tipos de projeto disponíveis na organização.</span>
+
+<span class="sd">        Retorna a lista de `project_types` como fornecida pela API. Útil para</span>
+<span class="sd">        sugerir IDs válidos quando a criação falha por tipo inválido.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;/orgs/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_org_id</span><span class="si">}</span><span class="s2">/project_types&quot;</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpoint</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">simplified</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">simplified</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">),</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attributes&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+                <span class="p">})</span>
+            <span class="k">return</span> <span class="n">simplified</span>
+        <span class="k">return</span> <span class="p">[]</span></div>
+
+
+
+<div class="viewcode-block" id="ProjectsModule.tipos_de_projetos">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.tipos_de_projetos">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tipos_de_projetos</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Alias em português para `list_project_types()`.</span>
+
+<span class="sd">        Retorna a lista de tipos de projeto da organização.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_project_types</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="ProjectsModule.get">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtém um projeto específico por ID.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto.</span>
+<span class="sd">            include: Relacionamentos para incluir.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dados do projeto.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; project = client.projects.get(123)</span>
+<span class="sd">            &gt;&gt;&gt; print(project[&#39;data&#39;][&#39;attributes&#39;][&#39;title&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">if</span> <span class="n">include</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">include</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">params</span> <span class="k">if</span> <span class="n">params</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ProjectsModule.get_many">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.get_many">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_many</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">include</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtém múltiplos projetos em paralelo.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_ids: Lista de IDs de projetos.</span>
+<span class="sd">            include: Relacionamentos para incluir.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Lista de dados de projetos.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; projects = client.projects.get_many([123, 456, 789])</span>
+<span class="sd">            &gt;&gt;&gt; for p in projects:</span>
+<span class="sd">            ...     print(p[&#39;data&#39;][&#39;attributes&#39;][&#39;title&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">fetch_project</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">include</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_parallel</span><span class="p">(</span>
+            <span class="n">fetch_project</span><span class="p">,</span>
+            <span class="n">project_ids</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_threading_config</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ProjectsModule.create">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.create">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">project_type_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">target_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ProjectState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">status</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ProjectStatus</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">background</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scope</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">budget</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">opinion</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">opinion_description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">management_response</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_sample_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">number_of_testing_rounds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tag_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">custom_attributes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cria um novo projeto.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            name: Nome do projeto (obrigatório, máx 120 caracteres).</span>
+<span class="sd">            project_type_id: ID do tipo de projeto (obrigatório).</span>
+<span class="sd">            start_date: Data de início (YYYY-MM-DD, obrigatório).</span>
+<span class="sd">            target_date: Data alvo de conclusão (YYYY-MM-DD, obrigatório).</span>
+<span class="sd">            description: Descrição do projeto (máx 524288 caracteres).</span>
+<span class="sd">            state: Estado do projeto (&quot;active&quot; ou &quot;archive&quot;, default: &quot;active&quot;).</span>
+<span class="sd">            status: Status do projeto (&quot;draft&quot;, &quot;proposed&quot;, &quot;active&quot;, &quot;completed&quot;).</span>
+<span class="sd">            background: Background/contexto do projeto.</span>
+<span class="sd">            purpose: Propósito/objetivos do projeto.</span>
+<span class="sd">            scope: Escopo do projeto.</span>
+<span class="sd">            budget: Orçamento em horas (0-2147483647).</span>
+<span class="sd">            opinion: Opinião/rating final do projeto.</span>
+<span class="sd">            opinion_description: Descrição da opinião.</span>
+<span class="sd">            management_response: Resposta da gestão.</span>
+<span class="sd">            max_sample_size: Tamanho máximo da amostra (0 para Workplan workflow).</span>
+<span class="sd">            number_of_testing_rounds: Rodadas de teste (0, 1, 2 ou 4 para Internal Control).</span>
+<span class="sd">            tag_list: Lista de tags.</span>
+<span class="sd">            planned_start_date: Data de início planejada (YYYY-MM-DD).</span>
+<span class="sd">            planned_end_date: Data de término planejada (YYYY-MM-DD).</span>
+<span class="sd">            custom_attributes: Atributos customizados.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dados do projeto criado.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; project = client.projects.create(</span>
+<span class="sd">            ...     name=&quot;Auditoria Q1 2024&quot;,</span>
+<span class="sd">            ...     project_type_id=1,</span>
+<span class="sd">            ...     start_date=&quot;2024-01-01&quot;,</span>
+<span class="sd">            ...     target_date=&quot;2024-03-31&quot;,</span>
+<span class="sd">            ...     status=ProjectStatus.ACTIVE</span>
+<span class="sd">            ... )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Campos obrigatórios</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;start_date&quot;</span><span class="p">:</span> <span class="n">start_date</span><span class="p">,</span>
+            <span class="s2">&quot;target_date&quot;</span><span class="p">:</span> <span class="n">target_date</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Campos opcionais</span>
+        <span class="n">optional_attrs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">description</span><span class="p">,</span>
+            <span class="s2">&quot;state&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">ProjectState</span><span class="p">)</span> <span class="k">else</span> <span class="n">state</span><span class="p">,</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">status</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">ProjectStatus</span><span class="p">)</span> <span class="k">else</span> <span class="n">status</span><span class="p">,</span>
+            <span class="s2">&quot;background&quot;</span><span class="p">:</span> <span class="n">background</span><span class="p">,</span>
+            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="n">purpose</span><span class="p">,</span>
+            <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="n">scope</span><span class="p">,</span>
+            <span class="s2">&quot;budget&quot;</span><span class="p">:</span> <span class="n">budget</span><span class="p">,</span>
+            <span class="s2">&quot;opinion&quot;</span><span class="p">:</span> <span class="n">opinion</span><span class="p">,</span>
+            <span class="s2">&quot;opinion_description&quot;</span><span class="p">:</span> <span class="n">opinion_description</span><span class="p">,</span>
+            <span class="s2">&quot;management_response&quot;</span><span class="p">:</span> <span class="n">management_response</span><span class="p">,</span>
+            <span class="s2">&quot;max_sample_size&quot;</span><span class="p">:</span> <span class="n">max_sample_size</span><span class="p">,</span>
+            <span class="s2">&quot;number_of_testing_rounds&quot;</span><span class="p">:</span> <span class="n">number_of_testing_rounds</span><span class="p">,</span>
+            <span class="s2">&quot;tag_list&quot;</span><span class="p">:</span> <span class="n">tag_list</span><span class="p">,</span>
+            <span class="s2">&quot;planned_start_date&quot;</span><span class="p">:</span> <span class="n">planned_start_date</span><span class="p">,</span>
+            <span class="s2">&quot;planned_end_date&quot;</span><span class="p">:</span> <span class="n">planned_end_date</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">optional_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">if</span> <span class="n">custom_attributes</span><span class="p">:</span>
+            <span class="n">attributes</span><span class="p">[</span><span class="s2">&quot;custom_attributes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">custom_attributes</span>
+        
+        <span class="c1"># Relacionamento obrigatório: project_type</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;projects&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;attributes&quot;</span><span class="p">:</span> <span class="n">attributes</span><span class="p">,</span>
+                <span class="s2">&quot;relationships&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;project_type&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;project_types&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">project_type_id</span><span class="p">)</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">..exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighBondValidationError</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">HighBondValidationError</span><span class="p">):</span>
+                <span class="n">resp</span> <span class="o">=</span> <span class="n">exc</span><span class="o">.</span><span class="n">response</span> <span class="ow">or</span> <span class="p">{}</span>
+                <span class="n">errors</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;errors&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+
+                <span class="c1"># Build detailed field_errors: field -&gt; {message, pointer}</span>
+                <span class="n">field_errors</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+                    <span class="n">src</span> <span class="o">=</span> <span class="n">err</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="p">{})</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+                    <span class="n">pointer</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pointer&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span> <span class="k">if</span> <span class="n">src</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                    <span class="c1"># normalize field name from pointer</span>
+                    <span class="n">field_name</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">pointer</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;/data/attributes/&quot;</span><span class="p">):</span>
+                        <span class="n">field_name</span> <span class="o">=</span> <span class="n">pointer</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/data/attributes/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">pointer</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;/data/&quot;</span><span class="p">):</span>
+                        <span class="n">field_name</span> <span class="o">=</span> <span class="n">pointer</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/data/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">field_name</span> <span class="o">=</span> <span class="n">pointer</span> <span class="ow">or</span> <span class="kc">None</span>
+
+                    <span class="k">if</span> <span class="n">field_name</span><span class="p">:</span>
+                        <span class="n">field_errors</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="n">err</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;detail&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;erro de validação&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;pointer&quot;</span><span class="p">:</span> <span class="n">pointer</span><span class="p">,</span>
+                        <span class="p">}</span>
+
+                <span class="c1"># Attach project_types suggestions (always try on validation error)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">types_resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/orgs/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_org_id</span><span class="si">}</span><span class="s2">/project_types&quot;</span><span class="p">)</span>
+                    <span class="n">raw_types</span> <span class="o">=</span> <span class="n">types_resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">types_resp</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+                    <span class="n">types</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">raw_types</span><span class="p">:</span>
+                        <span class="n">types</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">),</span>
+                            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attributes&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span>
+                        <span class="p">})</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">types</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">types</span><span class="p">:</span>
+                        <span class="n">resp</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;available_project_types&quot;</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">field_errors</span><span class="p">:</span>
+                        <span class="n">resp</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;field_errors&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">field_errors</span><span class="p">)</span>
+
+                    <span class="c1"># Compose a readable message summarizing field errors</span>
+                    <span class="k">if</span> <span class="n">field_errors</span><span class="p">:</span>
+                        <span class="n">summary</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;message&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">field_errors</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+                        <span class="n">exc</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+
+                    <span class="c1"># Add explanations per field to help the user fix the payload</span>
+                    <span class="n">explanations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;field_errors&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;message&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s2">&quot;project_type&quot;</span> <span class="ow">in</span> <span class="n">f</span> <span class="ow">or</span> <span class="s2">&quot;audit_type&quot;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                            <span class="n">explanations</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;Campo &#39;project_type_id&#39;: </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">. O `project_type_id` informado é inválido ou não existe. &quot;</span>
+                                <span class="s2">&quot;Verifique `available_project_types` para IDs válidos e forneça um id pertencente à sua organização.&quot;</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">explanations</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Campo &#39;</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">. Corrija esse campo conforme a mensagem de detalhe.&quot;</span>
+
+                    <span class="k">if</span> <span class="n">explanations</span><span class="p">:</span>
+                        <span class="n">resp</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;explanations&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">explanations</span><span class="p">)</span>
+
+                    <span class="c1"># Imprimir explicação amigável automaticamente</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[HighBondSDK] Erro de validação ao criar projeto:&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;explanations&quot;</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Explicações:&quot;</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;explanations&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;available_project_types&quot;</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Tipos de projeto válidos:&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">resp</span><span class="p">[</span><span class="s2">&quot;available_project_types&quot;</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;field_errors&quot;</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Detalhes por campo:&quot;</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;field_errors&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;message&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> (pointer: </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pointer&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+                    <span class="n">exc</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="n">resp</span>
+
+            <span class="k">raise</span></div>
+
+    
+<div class="viewcode-block" id="ProjectsModule.update">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.update">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ProjectState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">status</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ProjectStatus</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">background</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">purpose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scope</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">budget</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">opinion</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">opinion_description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">management_response</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">certification</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">control_performance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">risk_assurance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">target_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">planned_end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">actual_start_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">actual_end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tag_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">custom_attributes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Atualiza um projeto existente.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto a atualizar.</span>
+<span class="sd">            name: Novo nome.</span>
+<span class="sd">            description: Nova descrição.</span>
+<span class="sd">            state: Novo estado (&quot;active&quot;, &quot;archive&quot;, &quot;delete&quot;).</span>
+<span class="sd">            status: Novo status.</span>
+<span class="sd">            background: Novo background.</span>
+<span class="sd">            purpose: Novo propósito.</span>
+<span class="sd">            scope: Novo escopo.</span>
+<span class="sd">            budget: Novo orçamento.</span>
+<span class="sd">            opinion: Nova opinião.</span>
+<span class="sd">            opinion_description: Nova descrição da opinião.</span>
+<span class="sd">            management_response: Nova resposta da gestão.</span>
+<span class="sd">            certification: Habilitar certificações (requer System Admin + Professional).</span>
+<span class="sd">            control_performance: Habilitar control performance.</span>
+<span class="sd">            risk_assurance: Habilitar risk assurance.</span>
+<span class="sd">            start_date: Nova data de início.</span>
+<span class="sd">            target_date: Nova data alvo.</span>
+<span class="sd">            planned_start_date: Nova data de início planejada.</span>
+<span class="sd">            planned_end_date: Nova data de término planejada.</span>
+<span class="sd">            actual_start_date: Nova data de início real.</span>
+<span class="sd">            actual_end_date: Nova data de término real.</span>
+<span class="sd">            tag_list: Nova lista de tags.</span>
+<span class="sd">            custom_attributes: Novos atributos customizados.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dados do projeto atualizado.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; project = client.projects.update(</span>
+<span class="sd">            ...     project_id=123,</span>
+<span class="sd">            ...     status=ProjectStatus.COMPLETED</span>
+<span class="sd">            ... )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="n">optional_attrs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">description</span><span class="p">,</span>
+            <span class="s2">&quot;state&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">ProjectState</span><span class="p">)</span> <span class="k">else</span> <span class="n">state</span><span class="p">,</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">status</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">ProjectStatus</span><span class="p">)</span> <span class="k">else</span> <span class="n">status</span><span class="p">,</span>
+            <span class="s2">&quot;background&quot;</span><span class="p">:</span> <span class="n">background</span><span class="p">,</span>
+            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="n">purpose</span><span class="p">,</span>
+            <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="n">scope</span><span class="p">,</span>
+            <span class="s2">&quot;budget&quot;</span><span class="p">:</span> <span class="n">budget</span><span class="p">,</span>
+            <span class="s2">&quot;opinion&quot;</span><span class="p">:</span> <span class="n">opinion</span><span class="p">,</span>
+            <span class="s2">&quot;opinion_description&quot;</span><span class="p">:</span> <span class="n">opinion_description</span><span class="p">,</span>
+            <span class="s2">&quot;management_response&quot;</span><span class="p">:</span> <span class="n">management_response</span><span class="p">,</span>
+            <span class="s2">&quot;certification&quot;</span><span class="p">:</span> <span class="n">certification</span><span class="p">,</span>
+            <span class="s2">&quot;control_performance&quot;</span><span class="p">:</span> <span class="n">control_performance</span><span class="p">,</span>
+            <span class="s2">&quot;risk_assurance&quot;</span><span class="p">:</span> <span class="n">risk_assurance</span><span class="p">,</span>
+            <span class="s2">&quot;start_date&quot;</span><span class="p">:</span> <span class="n">start_date</span><span class="p">,</span>
+            <span class="s2">&quot;target_date&quot;</span><span class="p">:</span> <span class="n">target_date</span><span class="p">,</span>
+            <span class="s2">&quot;planned_start_date&quot;</span><span class="p">:</span> <span class="n">planned_start_date</span><span class="p">,</span>
+            <span class="s2">&quot;planned_end_date&quot;</span><span class="p">:</span> <span class="n">planned_end_date</span><span class="p">,</span>
+            <span class="s2">&quot;actual_start_date&quot;</span><span class="p">:</span> <span class="n">actual_start_date</span><span class="p">,</span>
+            <span class="s2">&quot;actual_end_date&quot;</span><span class="p">:</span> <span class="n">actual_end_date</span><span class="p">,</span>
+            <span class="s2">&quot;tag_list&quot;</span><span class="p">:</span> <span class="n">tag_list</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">optional_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">if</span> <span class="n">custom_attributes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">attributes</span><span class="p">[</span><span class="s2">&quot;custom_attributes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">custom_attributes</span>
+        
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;projects&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">project_id</span><span class="p">),</span>
+                <span class="s2">&quot;attributes&quot;</span><span class="p">:</span> <span class="n">attributes</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ProjectsModule.delete">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.delete">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exclui um projeto.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_id: ID do projeto a excluir.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Resposta da API (geralmente vazia em sucesso).</span>
+<span class="sd">            </span>
+<span class="sd">        Warning:</span>
+<span class="sd">            Esta ação é irreversível e remove todos os dados associados.</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; client.projects.delete(123)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_endpoint</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_http_client</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">endpoint</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ProjectsModule.delete_many">
+<a class="viewcode-back" href="../../../source/highbond_sdk.modules.html#highbond_sdk.ProjectsModule.delete_many">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_many</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exclui múltiplos projetos em paralelo.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_ids: Lista de IDs de projetos a excluir.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Lista de respostas da API.</span>
+<span class="sd">            </span>
+<span class="sd">        Warning:</span>
+<span class="sd">            Esta ação é irreversível!</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_parallel</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+            <span class="n">project_ids</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_threading_config</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">HighBond SDK</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Your Name.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
