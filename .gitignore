@@ -76,6 +76,7 @@ poetry.lock
 
 # Env
 .venv/
+myenv/
 venv/
 ENV/
 env.bak/
@@ -83,3 +84,5 @@ venv.bak/
 
 tests
 *tests*
+
+highbond_api*

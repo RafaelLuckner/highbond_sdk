@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "highbond-sdk"
-version = "0.0.1"
+version = "0.0.2"
 description = "SDK Python completo para a API HighBond - Projects, Risks, Controls e Issues com paginação automática e multithreading"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -59,7 +59,7 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/RafaelLuckner/highbond_sdk"
-Repository = "https://github.com/RafaelLuckner/highbond_sdkk"
+Repository = "https://github.com/RafaelLuckner/highbond_sdk"
 Changelog = "https://github.com/RafaelLuckner/highbond_sdk/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]

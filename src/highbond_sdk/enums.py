@@ -1,31 +1,30 @@
 
+"""highbond_sdk.enums
+======================
+
+Enums usados pelo SDK. Muitos campos na API HighBond são configuráveis
+por `project type`, portanto esses enums representam valores comuns
+e são fornecidos apenas como conveniência/documentação.
+"""
+
 from enum import Enum
 
-"""
-Enumerações para o HighBond SDK.
 
-NOTA IMPORTANTE:
-A maioria dos campos da API HighBond utiliza strings configuráveis no project type,
-não valores fixos. Os valores abaixo são EXEMPLOS comuns que podem variar de acordo
-com a configuração da sua organização. Sempre verifique as opções disponíveis no
-seu project type específico.
-"""
-
-# Adiciona enum faltante para documentação automática
 class ObjectiveType(str, Enum):
-    """Tipos possíveis de objetivo."""
+    """Tipos comuns de objetivo."""
     STRATEGIC = "strategic"
     OPERATIONAL = "operational"
     COMPLIANCE = "compliance"
     FINANCIAL = "financial"
 
-# Adiciona enums faltantes para documentação automática
+
 class ProjectState(str, Enum):
     """Estados possíveis de um projeto."""
     ACTIVE = "active"
     ARCHIVED = "archived"
     DRAFT = "draft"
     CLOSED = "closed"
+
 
 class ProjectStatus(str, Enum):
     """Status possíveis de um projeto."""
@@ -36,105 +35,107 @@ class ProjectStatus(str, Enum):
 
 
 class Region(str, Enum):
-    """Regiões disponíveis da API HighBond.
-    
-    Use estes valores para configurar a região correta:
-    - US: Estados Unidos
-    - EU: Europa  
-    - AU: Austrália
-    - CA: Canadá
-    - SA: América do Sul
+    """Regiões da API HighBond.
+
+    Use esses valores para configurar a região apropriada.
     """
-    
+
     US = "us"
     EU = "eu"
     AU = "au"
     CA = "ca"
     SA = "sa"
-    
+
     @classmethod
     def get_base_url(cls, region: "Region") -> str:
-        """Retorna a URL base para a região."""
         if region == cls.SA:
             return "https://apis-sa.diligentoneplatform.com/v1"
         return f"https://apis-{region.value}.highbond.com/v1"
 
 
-# ====================================================================
-# EXEMPLOS DE VALORES COMUNS
-# ====================================================================
-# Os valores abaixo são exemplos. Verifique as opções configuradas
-# no seu project type específico.
-# ====================================================================
+class Severity(str, Enum):
+    """Severidade típica para issues/risks (exemplos)."""
+    CRITICAL = "Critical"
+    HIGH = "High"
+    MEDIUM = "Medium"
+    LOW = "Low"
 
-# Exemplos de valores para campo 'deficiency_type' em Issues:
-# - "Deficiency"
-# - "Significant Deficiency"
-# - "Material Weakness"
-# - "Best Practice"
-# - "Observation"
 
-# Exemplos de valores para campo 'severity' em Issues/Risks:
-# - "High"
-# - "Medium"  
-# - "Low"
-# - "Critical"
+class RiskStatus(str, Enum):
+    """Status comum de riscos."""
+    OPEN = "Open"
+    MONITORED = "Monitored"
+    MITIGATED = "Mitigated"
+    CLOSED = "Closed"
 
-# Exemplos de valores para campo 'impact'/'likelihood' em Risks:
-# - "High"
-# - "Medium"
-# - "Low"
-# - "Very High"
-# - "Very Low"
 
-# Exemplos de valores para campo 'frequency' em Controls:
-# - "Daily"
-# - "Weekly"
-# - "Monthly"
-# - "Quarterly"
-# - "Annually"
-# - "As Needed"
-# - "Semi-annually"
+class ControlType(str, Enum):
+    """Tipos de controles (exemplos)."""
+    APPLICATION = "Application/System Control"
+    MANUAL = "Manual Control"
+    IT_DEPENDENT = "IT Dependent Manual Control"
 
-# Exemplos de valores para campo 'control_type' em Controls:
-# - "Application/System Control"
-# - "Manual Control"
-# - "IT Dependent Manual Control"
 
-# Exemplos de valores para campo 'prevent_detect' em Controls:
-# - "Prevent"
-# - "Detect"
-# - "N/A"
+class ControlStatus(str, Enum):
+    """Status de controles."""
+    KEY = "Key Control"
+    NOT_KEY = "Not Key Control"
 
-# Exemplos de valores para campo 'method' em Controls:
-# - "Management Review"
-# - "Observation"
-# - "Inquiry"
-# - "Inspection"
-# - "Recalculation"
-# - "Reperformance"
 
-# Exemplos de valores para campo 'status' em Controls:
-# - "Key Control"
-# - "Not Key Control"
+class ControlTestFrequency(str, Enum):
+    """Frequência de teste de controles."""
+    DAILY = "Daily"
+    WEEKLY = "Weekly"
+    MONTHLY = "Monthly"
+    QUARTERLY = "Quarterly"
+    ANNUALLY = "Annually"
 
-# Exemplos de valores para campo 'remediation_status' em Issues:
-# - "Opened"
-# - "In Progress"
-# - "Closed"
-# - "Pending Verification"
 
-from enum import Enum
+class ControlAutomation(str, Enum):
+    """Nível de automação do controle."""
+    AUTOMATED = "Automated"
+    MANUAL = "Manual"
 
-"""
-Enumerações para o HighBond SDK.
 
-NOTA IMPORTANTE:
-A maioria dos campos da API HighBond utiliza strings configuráveis no project type,
-não valores fixos. Os valores abaixo são EXEMPLOS comuns que podem variar de acordo
-com a configuração da sua organização. Sempre verifique as opções disponíveis no
-seu project type específico.
-"""
+class IssueStatus(str, Enum):
+    """Status de issues."""
+    OPEN = "Opened"
+    IN_PROGRESS = "In Progress"
+    CLOSED = "Closed"
+
+
+class IssuePriority(str, Enum):
+    """Prioridade de issues."""
+    HIGH = "High"
+    MEDIUM = "Medium"
+    LOW = "Low"
+
+
+class SortOrder(str, Enum):
+    ASC = "asc"
+    DESC = "desc"
+
+
+__all__ = [
+    "ObjectiveType",
+    "ProjectState",
+    "ProjectStatus",
+    "Region",
+    "Severity",
+    "RiskStatus",
+    "ControlType",
+    "ControlStatus",
+    "ControlTestFrequency",
+    "ControlAutomation",
+    "IssueStatus",
+    "IssuePriority",
+    "SortOrder",
+]
+
+
+#  Os valores abaixo são EXEMPLOS comuns que podem variar de acordo
+# com a configuração da sua organização. Sempre verifique as opções disponíveis no
+# seu project type específico.
 
 # Adiciona enum faltante para documentação automática
 # Exemplos de valores para campo 'scope' em Issues:
@@ -150,8 +151,4 @@ seu project type específico.
 # - "Board"
 
 
-class SortOrder(str, Enum):
-    """Ordem de classificação."""
-    
-    ASC = "asc"
-    DESC = "desc"
+

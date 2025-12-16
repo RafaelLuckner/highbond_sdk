@@ -1,6 +1,15 @@
 
 # Changelog
 
+## [0.0.2] - 2025-12-16
+### Changed
+- O método `ProjectsModule.create()` agora imprime automaticamente explicações detalhadas, lista de tipos de projeto válidos e sugestões de correção ao ocorrer erro de validação (422), sem necessidade de try/except pelo usuário.
+- Melhor experiência de erro para criação de projetos: mensagens amigáveis e sugestões aparecem direto no output.
+
+### Fixed
+- Pequenas correções de formatação e robustez no tratamento de erros de validação.
+
+
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),

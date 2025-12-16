@@ -109,6 +109,33 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
                 params[f"filter[{key}]"] = value
         
         yield from self._paginate(self._base_endpoint, pagination, params)
+
+    def list_project_types(self) -> List[Dict[str, Any]]:
+        """Lista os tipos de projeto disponíveis na organização.
+
+        Retorna a lista de `project_types` como fornecida pela API. Útil para
+        sugerir IDs válidos quando a criação falha por tipo inválido.
+        """
+        endpoint = f"/orgs/{self._org_id}/project_types"
+        resp = self._http_client.get(endpoint)
+        if isinstance(resp, dict):
+            data = resp.get("data", [])
+            simplified = []
+            for item in data:
+                simplified.append({
+                    "id": item.get("id"),
+                    "name": (item.get("attributes") or {}).get("name")
+                })
+            return simplified
+        return []
+
+
+    def tipos_de_projetos(self) -> List[Dict[str, Any]]:
+        """Alias em português para `list_project_types()`.
+
+        Retorna a lista de tipos de projeto da organização.
+        """
+        return self.list_project_types()
     
     def get(
         self,
@@ -272,7 +299,92 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
             }
         }
         
-        return self._http_client.post(self._base_endpoint, payload)
+        try:
+            return self._http_client.post(self._base_endpoint, payload)
+        except Exception as exc:
+            from ..exceptions import HighBondValidationError
+
+            if isinstance(exc, HighBondValidationError):
+                resp = exc.response or {}
+                errors = resp.get("errors", []) if isinstance(resp, dict) else []
+
+                # Build detailed field_errors: field -> {message, pointer}
+                field_errors: Dict[str, Dict[str, str]] = {}
+                for err in errors:
+                    src = err.get("source", {}) if isinstance(err, dict) else {}
+                    pointer = str(src.get("pointer", "")) if src else ""
+                    # normalize field name from pointer
+                    field_name = None
+                    if pointer.startswith("/data/attributes/"):
+                        field_name = pointer.split("/data/attributes/")[-1]
+                    elif pointer.startswith("/data/"):
+                        field_name = pointer.split("/data/")[-1]
+                    else:
+                        field_name = pointer or None
+
+                    if field_name:
+                        field_errors[field_name] = {
+                            "message": err.get("detail") if isinstance(err, dict) else "erro de validação",
+                            "pointer": pointer,
+                        }
+
+                # Attach project_types suggestions (always try on validation error)
+                try:
+                    types_resp = self._http_client.get(f"/orgs/{self._org_id}/project_types")
+                    raw_types = types_resp.get("data", []) if isinstance(types_resp, dict) else []
+                    types = []
+                    for item in raw_types:
+                        types.append({
+                            "id": item.get("id"),
+                            "name": (item.get("attributes") or {}).get("name"),
+                        })
+                except Exception:
+                    types = []
+
+                if isinstance(resp, dict):
+                    if types:
+                        resp.setdefault("available_project_types", types)
+                    if field_errors:
+                        resp.setdefault("field_errors", {}).update(field_errors)
+
+                    # Compose a readable message summarizing field errors
+                    if field_errors:
+                        summary = [f"{f}: {v.get('message')}" for f, v in field_errors.items()]
+                        exc.message = " | ".join(summary)
+
+                    # Add explanations per field to help the user fix the payload
+                    explanations: Dict[str, str] = {}
+                    for f, v in (resp.get("field_errors") or {}).items():
+                        msg = v.get("message") if isinstance(v, dict) else str(v)
+                        if "project_type" in f or "audit_type" in f:
+                            explanations[f] = (
+                                f"Campo 'project_type_id': {msg}. O `project_type_id` informado é inválido ou não existe. "
+                                "Verifique `available_project_types` para IDs válidos e forneça um id pertencente à sua organização."
+                            )
+                        else:
+                            explanations[f] = f"Campo '{f}': {msg}. Corrija esse campo conforme a mensagem de detalhe."
+
+                    if explanations:
+                        resp.setdefault("explanations", {}).update(explanations)
+
+                    # Imprimir explicação amigável automaticamente
+                    import json
+                    print("\n[HighBondSDK] Erro de validação ao criar projeto:")
+                    if resp.get("explanations"):
+                        print("Explicações:")
+                        for f, e in resp["explanations"].items():
+                            print(f"- {e}")
+                    if resp.get("available_project_types"):
+                        print("\nTipos de projeto válidos:")
+                        print(json.dumps(resp["available_project_types"], indent=2, ensure_ascii=False))
+                    if resp.get("field_errors"):
+                        print("\nDetalhes por campo:")
+                        for f, v in resp["field_errors"].items():
+                            print(f"- {f}: {v.get('message')} (pointer: {v.get('pointer')})")
+
+                    exc.response = resp
+
+            raise
     
     def update(
         self,

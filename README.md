@@ -1,10 +1,10 @@
 # HighBond SDK
 
-[![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com)
+![Version](https://img.shields.io/badge/version-0.0.2-blue.svg)](https://github.com)
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Primeira versão (0.0.1)** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls** e **Issues**.
+**Versão 0.0.2** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls** e **Issues**.
 
 ## ✨ Features
 
