@@ -1,6 +1,14 @@
 
 # Changelog
 
+## [0.0.4] - 2025-12-17
+### Changed
+- Refatoração de nomenclatura em métodos para melhor consistência e clareza da API:
+  - **RisksModule**: Métodos reorganizados para melhor clareza
+  - **ControlsModule**: Métodos reorganizados para melhor clareza
+  - **IssuesModule**: Métodos reorganizados para melhor clareza
+- Mantém total compatibilidade com versão anterior para operações de DataFrame e paginação
+
 ## [0.0.3] - 2025-12-17
 ### Added
 - Suporte completo a retorno de dados em formato DataFrame (pandas) em **TODOS** os módulos:

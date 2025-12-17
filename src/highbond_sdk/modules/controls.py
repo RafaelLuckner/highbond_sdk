@@ -111,7 +111,7 @@ class ControlsModule(PaginationMixin, ThreadingMixin):
             self._pagination_config,
             self._threading_config
         )
-        objetivos = list(objectives_module.list_all_by_project(project_id))
+        objetivos = list(objectives_module.list_by_project(project_id))
         controles = []
         for obj in objetivos:
             controles_obj = self.list_by_objective(

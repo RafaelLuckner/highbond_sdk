@@ -136,52 +136,8 @@ class IssuesModule(PaginationMixin, ThreadingMixin):
             return to_dataframe(issues)
         return issues
     
-    def list_by_project(
-        self,
-        project_id: int,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-        return_pandas: bool = False
-    ) -> Dict[str, Any]:
-        """Lista issues de um projeto específico.
-        
-        Args:
-            project_id: ID do projeto.
-            page: Número da página.
-            page_size: Itens por página.
-            include: Relacionamentos para incluir.
-            filters: Filtros adicionais.
-            return_pandas: Se True, retorna um DataFrame; se False, retorna um dict.
-            
-        Returns:
-            Resposta completa da API ou DataFrame.
-            
-        Example:
-            >>> response = client.issues.list_by_project(123)
-            >>> print(f"Total de issues: {len(response['data'])}")
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        response = self._http_client.get(self._project_endpoint(project_id), params)
-        
-        if return_pandas:
-            data = response.get('data', [])
-            return to_dataframe(data)
-        return response
     
-    def list_all_by_project(
+    def list_by_project(
         self,
         project_id: int,
         include: Optional[List[str]] = None,

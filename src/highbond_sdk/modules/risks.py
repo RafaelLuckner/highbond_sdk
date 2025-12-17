@@ -80,7 +80,7 @@ class RisksModule(PaginationMixin, ThreadingMixin):
             self._threading_config
         )
         def fetch_objectives(proj):
-            objetivos = list(objectives_module.list_all_by_project(proj["id"]))
+            objetivos = list(objectives_module.list_by_project(proj["id"]))
             for obj in objetivos:
                 objective_to_project[obj["id"]] = proj["id"]
             return objetivos
@@ -132,7 +132,7 @@ class RisksModule(PaginationMixin, ThreadingMixin):
             self._pagination_config,
             self._threading_config
         )
-        objetivos = list(objectives_module.list_all_by_project(project_id))
+        objetivos = list(objectives_module.list_by_project(project_id))
         riscos = []
         for obj in objetivos:
             riscos_obj = self.list_by_objective(
