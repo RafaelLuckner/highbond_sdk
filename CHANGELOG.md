@@ -1,6 +1,16 @@
 
 # Changelog
 
+## [0.0.6] - 2025-12-17
+### Changed
+- Removida função list_project_types por fazer a mesma função de list_all
+
+
+## [0.0.5] - 2025-12-17
+### Changed
+- Refatoração de nomenclatura em métodos para melhor consistência e clareza da API
+- Atualização da documentação para conter novos métodos e retirar removidos
+
 ## [0.0.4] - 2025-12-17
 ### Changed
 - Refatoração de nomenclatura em métodos para melhor consistência e clareza da API:

@@ -43,58 +43,9 @@ class IssuesModule(PaginationMixin, ThreadingMixin):
         """Endpoint base para issues de um projeto."""
         return f"/orgs/{self._org_id}/projects/{project_id}/issues"
     
-    def _objective_endpoint(self, project_id: int, objective_id: int) -> str:
-        """Endpoint base para issues de um objetivo."""
-        return (
-            f"/orgs/{self._org_id}/projects/{project_id}"
-            f"/objectives/{objective_id}/issues"
-        )
+
     
     # ==================== LISTAGEM ====================
-    
-    def list(
-        self,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-        return_pandas: bool = False
-    ) -> Dict[str, Any]:
-        """Lista todas as issues da organização com paginação manual.
-        
-        Args:
-            page: Número da página (1-based).
-            page_size: Itens por página (máximo 100).
-            include: Relacionamentos para incluir (ex: ['owner', 'project']).
-            filters: Filtros adicionais.
-            return_pandas: Se True, retorna um DataFrame; se False, retorna um dict.
-            
-        Returns:
-            Resposta completa da API com data, meta e links ou DataFrame.
-            
-        Example:
-            >>> response = client.issues.list(page=1, page_size=25)
-            >>> for issue in response['data']:
-            ...     print(issue['attributes']['title'])
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        response = self._http_client.get(self._org_endpoint, params)
-        
-        if return_pandas:
-            data = response.get('data', [])
-            return to_dataframe(data)
-        return response
     
     def list_all(
         self,
@@ -176,49 +127,13 @@ class IssuesModule(PaginationMixin, ThreadingMixin):
         if return_pandas:
             return to_dataframe(issues)
         return issues
-    
-    def list_by_objective(
-        self,
-        project_id: int,
-        objective_id: int,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        return_pandas: bool = False
-    ) -> Dict[str, Any]:
-        """Lista issues de um objetivo específico.
-        
-        Args:
-            project_id: ID do projeto.
-            objective_id: ID do objetivo.
-            page: Número da página.
-            page_size: Itens por página.
-            include: Relacionamentos para incluir.
-            return_pandas: Se True, retorna um DataFrame; se False, retorna um dict.
-            
-        Returns:
-            Resposta completa da API ou DataFrame.
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        endpoint = self._objective_endpoint(project_id, objective_id)
-        response = self._http_client.get(endpoint, params)
-        
-        if return_pandas:
-            data = response.get('data', [])
-            return to_dataframe(data)
-        return response
+
     
     def list_open(
         self,
         include: Optional[List[str]] = None,
-        max_pages: Optional[int] = None
+        max_pages: Optional[int] = None,
+        return_pandas: bool = False
     ) -> Generator[Dict[str, Any], None, None]:
         """Lista todas as issues abertas (status = open).
         
@@ -233,9 +148,13 @@ class IssuesModule(PaginationMixin, ThreadingMixin):
             >>> open_issues = list(client.issues.list_open())
             >>> print(f"Issues abertas: {len(open_issues)}")
         """
+
+        if return_pandas:
+            return to_dataframe(self.list_all(include=include,filters={"closed": "false"}))
+        
         return self.list_all(
             include=include,
-            filters={"status": "open"},
+            filters={"closed": "false"},
             max_pages=max_pages
         )
     

@@ -38,45 +38,6 @@ class ProjectTypesModule(PaginationMixin, ThreadingMixin):
         """Endpoint base para tipos de projeto."""
         return f"/orgs/{self._org_id}/project_types"
     
-    def list(
-        self,
-        page: int = 1,
-        page_size: int = 50,
-        filters: Optional[Dict[str, Any]] = None,
-        return_pandas: bool = False
-    ) -> Dict[str, Any]:
-        """Lista tipos de projeto com paginação manual.
-        
-        Args:
-            page: Número da página (1-based).
-            page_size: Itens por página (máximo 100).
-            filters: Filtros adicionais.
-            return_pandas: Se True, retorna um DataFrame; se False, retorna resposta da API.
-            
-        Returns:
-            Resposta completa da API com data, meta e links, ou DataFrame.
-            
-        Example:
-            >>> response = client.project_types.list(page=1, page_size=25)
-            >>> for pt in response['data']:
-            ...     print(pt['attributes']['name'])
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        response = self._http_client.get(self._base_endpoint, params)
-        
-        if return_pandas:
-            data = response["data"] if "data" in response else response
-            return to_dataframe(data)
-        return response
-    
     def list_all(
         self,
         filters: Optional[Dict[str, Any]] = None,

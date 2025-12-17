@@ -1,10 +1,10 @@
 # HighBond SDK
 
-[![Version](https://img.shields.io/badge/version-0.0.3-blue.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-0.0.6-blue.svg)](https://github.com)
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Versão 0.0.3** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
+**Versão 0.0.6** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
 
 ## ✨ Features
 
@@ -12,8 +12,6 @@
 - ⚡ **Multithreading** - Busca múltiplos recursos em paralelo para máxima performance
 - 🔄 **Retry automático** - Tratamento inteligente de rate limits e erros de conexão
 - 📊 **DataFrames** - Retorne dados em formato pandas DataFrame para análise rápida
-- 📝 **Tipagem completa** - Type hints para melhor autocompletar e validação
-- 🎯 **API intuitiva** - Interface fluente e fácil de usar
 - 🛡️ **Tratamento de erros** - Exceções específicas para cada tipo de erro
 
 ## 📦 Instalação
@@ -127,7 +125,7 @@ print(riscos_df.head())
 # Funciona em todos os módulos
 df_projetos = client.projects.list_all(return_pandas=True)
 df_controles = client.controls.list_all(return_pandas=True)
-df_objetivos = client.objectives.list_all_by_project(project_id=123, return_pandas=True)
+df_objetivos = client.objectives.list_by_project(project_id=123, return_pandas=True)
 df_tipos = client.project_types.list_all(return_pandas=True)
 ```
 
@@ -191,10 +189,10 @@ tipos = client.project_types.get_many([1, 2, 3])
 
 ```python
 # Listar objetivos de um projeto
-objetivos = client.objectives.list_all_by_project(project_id=546355)
+objetivos = client.objectives.list_by_project(project_id=546355)
 
 # Como DataFrame
-df_obj = client.objectives.list_all_by_project(
+df_obj = client.objectives.list_by_project(
     project_id=546355,
     return_pandas=True
 )
@@ -354,7 +352,7 @@ client.controls.delete(control_id=789)
 issues = client.issues.list_all()
 
 # Listar issues de um projeto
-issues_projeto = client.issues.list_all_by_project(project_id=546355)
+issues_projeto = client.issues.list_by_project(project_id=546355)
 
 # Buscar issue
 issue = client.issues.get(issue_id=999)
@@ -392,37 +390,6 @@ client.issues.close(issue_id=999)
 
 # Reabrir issue
 client.issues.reopen(issue_id=999)
-```
-
-### Tratamento de Erros
-
-```python
-from highbond_sdk import (
-    HighBondAPIError,
-    HighBondAuthError,
-    HighBondForbiddenError,
-    HighBondNotFoundError,
-    HighBondValidationError,
-    HighBondRateLimitError,
-    HighBondConnectionError
-)
-
-try:
-    projeto = client.projects.get(999999)
-except HighBondNotFoundError as e:
-    print(f"Projeto não encontrado: {e}")
-except HighBondAuthError as e:
-    print(f"Token inválido ou expirado: {e}")
-except HighBondForbiddenError as e:
-    print(f"Sem permissão para acessar: {e}")
-except HighBondValidationError as e:
-    print(f"Erro de validação: {e}")
-except HighBondRateLimitError as e:
-    print(f"Limite de requisições excedido: {e}")
-except HighBondConnectionError as e:
-    print(f"Erro de conexão: {e}")
-except HighBondAPIError as e:
-    print(f"Erro da API: {e} (status: {e.status_code})")
 ```
 
 ## 💡 Exemplos Práticos
@@ -508,8 +475,6 @@ print(f"Total de Controles: {len(df_controles)}")
 print("\nRiscos por Impacto:")
 print(df_riscos['attributes.impact'].value_counts())
 
-print("\nControles por Projeto:")
-print(df_controles['project_id'].value_counts())
 
 print("\nProjetos Ativos:")
 ativos = df_projetos[df_projetos['attributes.status'] == 'active']
