@@ -1,6 +1,10 @@
 
 # Changelog
 
+## [0.0.7] - 2025-12-17
+### Changed
+- Removidos métodos de conexão entre riscos e controles por não haver endpoint para tal
+
 ## [0.0.6] - 2025-12-17
 ### Changed
 - Removida função list_project_types por fazer a mesma função de list_all

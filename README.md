@@ -1,10 +1,10 @@
 # HighBond SDK
 
-[![Version](https://img.shields.io/badge/version-0.0.6-blue.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-0.0.7-blue.svg)](https://github.com)
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Versão 0.0.6** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
+**Versão 0.0.7** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
 
 ## ✨ Features
 
@@ -226,18 +226,15 @@ client.objectives.delete(project_id=546355, objective_id=1990741)
 ```python
 # Listar TODOS os riscos da organização (busca projetos → objetivos → riscos)
 # Retorna também o project_id de cada risco
-riscos = client.risks.list_all()
 riscos_df = client.risks.list_all(return_pandas=True)
 
 # Listar riscos de um projeto específico
-riscos_projeto = client.risks.list_by_project(project_id=546355)
 riscos_projeto_df = client.risks.list_by_project(
     project_id=546355,
     return_pandas=True  # Retorna como DataFrame
 )
 
 # Listar riscos de um objetivo específico
-riscos_obj = client.risks.list_by_objective(objective_id=1990741)
 riscos_obj_df = client.risks.list_by_objective(
     objective_id=1990741,
     return_pandas=True
@@ -262,15 +259,6 @@ novo = client.risks.create(
 # Atualizar risco
 client.risks.update(risk_id=8454148, impact="Low", title="Novo Título")
 
-# Vincular controle a um risco
-client.risks.link_control(risk_id=8454148, control_id=789)
-
-# Desvincular controle
-client.risks.unlink_control(risk_id=8454148, control_id=789)
-
-# Obter controles vinculados
-controles = client.risks.get_controls(risk_id=8454148)
-
 # Deletar risco
 client.risks.delete(risk_id=8454148)
 ```
@@ -278,22 +266,18 @@ client.risks.delete(risk_id=8454148)
 ### Controls
 
 > **IMPORTANTE**: Controles são criados dentro de **Objectives**, não diretamente em Projects.
-> Para projetos de workflow "Internal Control", os campos `frequency`, `control_type` e `prevent_detect` são obrigatórios.
 
 ```python
 # Listar TODOS os controles da organização
-controles = client.controls.list_all()
 controles_df = client.controls.list_all(return_pandas=True)
 
 # Listar controles de um projeto (busca objetivos do projeto → seus controles)
-controles_projeto = client.controls.list_by_project(project_id=510117)
 controles_projeto_df = client.controls.list_by_project(
     project_id=510117,
     return_pandas=True
 )
 
 # Listar controles de um objetivo
-controles_obj = client.controls.list_by_objective(objective_id=1924816)
 controles_obj_df = client.controls.list_by_objective(
     objective_id=1924816,
     return_pandas=True
@@ -325,18 +309,6 @@ novo_wp = client.controls.create(
 
 # Atualizar controle
 client.controls.update(control_id=789, status="Key Control")
-
-# Vincular risco a um controle
-client.controls.link_risk(control_id=789, risk_id=8454148)
-
-# Desvincular risco
-client.controls.unlink_risk(control_id=789, risk_id=8454148)
-
-# Obter riscos vinculados
-riscos = client.controls.get_risks(control_id=789)
-
-# Obter testes do controle
-testes = client.controls.get_tests(control_id=789)
 
 # Deletar controle
 client.controls.delete(control_id=789)
