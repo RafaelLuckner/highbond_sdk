@@ -32,7 +32,7 @@ from highbond_sdk import HighBondClient
 client = HighBondClient(
     token="seu_token_aqui",
     org_id=12345,        # int - ID da organização
-    region="us"          # "us", "eu", "au" ou "ca"
+    region="us"          # "us", "eu", "au", "ca" ou "sa"
 )
 
 # ===== PROJETOS =====
