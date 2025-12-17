@@ -28,7 +28,7 @@ Example:
     ... )
 """
 
-__version__ = "1.0.0"
+__version__ = "0.0.2"
 __author__ = "HighBond SDK Team"
 __license__ = "MIT"
 

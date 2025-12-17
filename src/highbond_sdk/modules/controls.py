@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any, List, Generator
 
 from ..http_client import HighBondHTTPClient, PaginationMixin, ThreadingMixin
 from ..config import PaginationConfig, ThreadingConfig
+from ..utils import to_dataframe
 
 
 class ControlsModule(PaginationMixin, ThreadingMixin):
@@ -38,71 +39,29 @@ class ControlsModule(PaginationMixin, ThreadingMixin):
         """Endpoint base para controles a nível de organização."""
         return f"/orgs/{self._org_id}/controls"
     
-    def _project_endpoint(self, project_id: int) -> str:
-        """Endpoint base para controles de um projeto."""
-        return f"/orgs/{self._org_id}/projects/{project_id}/controls"
-    
-    def _objective_endpoint(self, project_id: int, objective_id: int) -> str:
+    def _objective_endpoint(self, objective_id: int) -> str:
         """Endpoint base para controles de um objetivo."""
-        return (
-            f"/orgs/{self._org_id}/projects/{project_id}"
-            f"/objectives/{objective_id}/controls"
-        )
+        return f"/orgs/{self._org_id}/objectives/{objective_id}/controls"
     
     # ==================== LISTAGEM ====================
-    
-    def list(
-        self,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Lista todos os controles da organização com paginação manual.
-        
-        Args:
-            page: Número da página (1-based).
-            page_size: Itens por página (máximo 100).
-            include: Relacionamentos para incluir (ex: ['risks', 'owner', 'tests']).
-            filters: Filtros adicionais.
-            
-        Returns:
-            Resposta completa da API com data, meta e links.
-            
-        Example:
-            >>> response = client.controls.list(page=1, page_size=25)
-            >>> for control in response['data']:
-            ...     print(control['attributes']['title'])
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        return self._http_client.get(self._org_endpoint, params)
     
     def list_all(
         self,
         include: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        max_pages: Optional[int] = None
-    ) -> Generator[Dict[str, Any], None, None]:
+        max_pages: Optional[int] = None,
+        return_pandas: bool = False
+    ) -> List[Dict[str, Any]]:
         """Lista todos os controles da organização com paginação automática.
         
         Args:
             include: Relacionamentos para incluir.
             filters: Filtros adicionais.
             max_pages: Máximo de páginas a buscar.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna uma lista.
             
-        Yields:
-            Cada controle individualmente.
+        Returns:
+            Lista de todos os controles ou DataFrame.
             
         Example:
             >>> for control in client.controls.list_all():
@@ -120,99 +79,70 @@ class ControlsModule(PaginationMixin, ThreadingMixin):
             for key, value in filters.items():
                 params[f"filter[{key}]"] = value
         
-        yield from self._paginate(self._org_endpoint, pagination, params)
+        controles = list(self._paginate(self._org_endpoint, pagination, params))
+        
+        if return_pandas:
+            return to_dataframe(controles)
+        return controles
+    
     
     def list_by_project(
         self,
         project_id: int,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Lista controles de um projeto específico.
-        
-        Args:
-            project_id: ID do projeto.
-            page: Número da página.
-            page_size: Itens por página.
-            include: Relacionamentos para incluir.
-            filters: Filtros adicionais.
-            
-        Returns:
-            Resposta completa da API.
-            
-        Example:
-            >>> response = client.controls.list_by_project(123)
-            >>> print(f"Total de controles: {len(response['data'])}")
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        return self._http_client.get(self._project_endpoint(project_id), params)
-    
-    def list_all_by_project(
-        self,
-        project_id: int,
         include: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        max_pages: Optional[int] = None
-    ) -> Generator[Dict[str, Any], None, None]:
-        """Lista todos os controles de um projeto com paginação automática.
+        return_pandas: bool = False
+    ) -> List[Dict[str, Any]]:
+        """Lista todos os controles de um projeto (buscando todos os objetivos e seus controles).
         
         Args:
             project_id: ID do projeto.
             include: Relacionamentos para incluir.
             filters: Filtros adicionais.
-            max_pages: Máximo de páginas.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna uma lista.
             
-        Yields:
-            Cada controle individualmente.
+        Returns:
+            Lista de controles do projeto ou DataFrame.
         """
-        pagination = PaginationConfig(
-            page_size=self._pagination_config.page_size,
-            max_pages=max_pages or self._pagination_config.max_pages
+        from .objectives import ObjectivesModule
+        objectives_module = ObjectivesModule(
+            self._http_client,
+            self._org_id,
+            self._pagination_config,
+            self._threading_config
         )
-        
-        params = {}
-        if include:
-            params["include"] = ",".join(include)
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        yield from self._paginate(
-            self._project_endpoint(project_id), pagination, params
-        )
+        objetivos = list(objectives_module.list_all_by_project(project_id))
+        controles = []
+        for obj in objetivos:
+            controles_obj = self.list_by_objective(
+                objective_id=obj["id"],
+                include=include
+            )
+            if isinstance(controles_obj, dict) and "data" in controles_obj:
+                controles.extend(controles_obj["data"])
+        if return_pandas:
+            return to_dataframe(controles)
+        return controles
     
     def list_by_objective(
         self,
-        project_id: int,
         objective_id: int,
         page: int = 1,
         page_size: int = 50,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> Dict[str, Any]:
         """Lista controles de um objetivo específico.
         
         Args:
-            project_id: ID do projeto.
             objective_id: ID do objetivo.
             page: Número da página.
             page_size: Itens por página.
             include: Relacionamentos para incluir.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna resposta da API.
             
         Returns:
-            Resposta completa da API.
+            Resposta completa da API ou DataFrame.
         """
         params = {
             "page[number]": self._encode_page_number(page),
@@ -222,24 +152,32 @@ class ControlsModule(PaginationMixin, ThreadingMixin):
         if include:
             params["include"] = ",".join(include)
         
-        endpoint = self._objective_endpoint(project_id, objective_id)
-        return self._http_client.get(endpoint, params)
+        endpoint = self._objective_endpoint(objective_id)
+        response = self._http_client.get(endpoint, params)
+        data = response["data"] if "data" in response else response
+        
+        # Adiciona informações do objetivo se necessário
+        if return_pandas:
+            return to_dataframe(data)
+        return response
     
     # ==================== OBTENÇÃO ====================
     
     def get(
         self,
         control_id: int,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> Dict[str, Any]:
         """Obtém um controle específico por ID.
         
         Args:
             control_id: ID do controle.
             include: Relacionamentos para incluir.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna resposta da API.
             
         Returns:
-            Dados do controle.
+            Dados do controle ou DataFrame.
             
         Example:
             >>> control = client.controls.get(789)
@@ -251,30 +189,40 @@ class ControlsModule(PaginationMixin, ThreadingMixin):
         if include:
             params["include"] = ",".join(include)
         
-        return self._http_client.get(endpoint, params if params else None)
+        response = self._http_client.get(endpoint, params if params else None)
+        
+        if return_pandas:
+            return to_dataframe(response)
+        return response
     
     def get_many(
         self,
         control_ids: List[int],
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> List[Dict[str, Any]]:
         """Obtém múltiplos controles em paralelo.
         
         Args:
             control_ids: Lista de IDs de controles.
             include: Relacionamentos para incluir.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna lista.
             
         Returns:
-            Lista de dados de controles.
+            Lista de dados de controles ou DataFrame.
         """
         def fetch_control(cid):
-            return self.get(cid, include)
+            return self.get(cid, include, return_pandas=False)
         
-        return self._execute_parallel(
+        controls = self._execute_parallel(
             fetch_control,
             control_ids,
             self._threading_config
         )
+        
+        if return_pandas:
+            return to_dataframe(controls)
+        return controls
     
     # ==================== CRIAÇÃO ====================
     

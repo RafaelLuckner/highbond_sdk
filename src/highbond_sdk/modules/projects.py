@@ -7,6 +7,7 @@ from ..http_client import HighBondHTTPClient, PaginationMixin, ThreadingMixin
 from ..config import PaginationConfig, ThreadingConfig
 from ..enums import ProjectState, ProjectStatus
 
+from ..utils import to_dataframe
 
 class ProjectsModule(PaginationMixin, ThreadingMixin):
     """Módulo para gerenciamento de Projetos no HighBond.
@@ -44,7 +45,8 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
         page: int = 1,
         page_size: int = 50,
         include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
+        return_pandas: bool = False
     ) -> Dict[str, Any]:
         """Lista projetos com paginação manual.
         
@@ -53,9 +55,10 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
             page_size: Itens por página (máximo 100).
             include: Relacionamentos para incluir (ex: ['objectives', 'owner']).
             filters: Filtros adicionais.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna resposta da API.
             
         Returns:
-            Resposta completa da API com data, meta e links.
+            Resposta completa da API com data, meta e links, ou DataFrame.
             
         Example:
             >>> response = client.projects.list(page=1, page_size=25)
@@ -74,23 +77,30 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
             for key, value in filters.items():
                 params[f"filter[{key}]"] = value
         
-        return self._http_client.get(self._base_endpoint, params)
+        response = self._http_client.get(self._base_endpoint, params)
+        
+        if return_pandas:
+            data = response["data"] if "data" in response else response
+            return to_dataframe(data)
+        return response
     
     def list_all(
         self,
         include: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        max_pages: Optional[int] = None
-    ) -> Generator[Dict[str, Any], None, None]:
+        max_pages: Optional[int] = None,
+        return_pandas: bool = False
+    ) -> List[Dict[str, Any]]:
         """Lista todos os projetos com paginação automática.
         
         Args:
             include: Relacionamentos para incluir.
             filters: Filtros adicionais.
             max_pages: Máximo de páginas a buscar (None = todas).
+            return_pandas: Se True, retorna um DataFrame; se False, retorna uma lista.
             
-        Yields:
-            Cada projeto individualmente.
+        Returns:
+            Lista de projetos ou DataFrame.
             
         Example:
             >>> for project in client.projects.list_all():
@@ -108,7 +118,11 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
             for key, value in filters.items():
                 params[f"filter[{key}]"] = value
         
-        yield from self._paginate(self._base_endpoint, pagination, params)
+        projetos = list(self._paginate(self._base_endpoint, pagination, params))
+        
+        if return_pandas:
+            return to_dataframe(projetos)
+        return projetos
 
     def list_project_types(self) -> List[Dict[str, Any]]:
         """Lista os tipos de projeto disponíveis na organização.
@@ -140,16 +154,18 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
     def get(
         self,
         project_id: int,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> Dict[str, Any]:
         """Obtém um projeto específico por ID.
         
         Args:
             project_id: ID do projeto.
             include: Relacionamentos para incluir.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna resposta da API.
             
         Returns:
-            Dados do projeto.
+            Dados do projeto ou DataFrame.
             
         Example:
             >>> project = client.projects.get(123)
@@ -161,21 +177,27 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
         if include:
             params["include"] = ",".join(include)
         
-        return self._http_client.get(endpoint, params if params else None)
+        response = self._http_client.get(endpoint, params if params else None)
+        
+        if return_pandas:
+            return to_dataframe(response)
+        return response
     
     def get_many(
         self,
         project_ids: List[int],
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> List[Dict[str, Any]]:
         """Obtém múltiplos projetos em paralelo.
         
         Args:
             project_ids: Lista de IDs de projetos.
             include: Relacionamentos para incluir.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna lista.
             
         Returns:
-            Lista de dados de projetos.
+            Lista de dados de projetos ou DataFrame.
             
         Example:
             >>> projects = client.projects.get_many([123, 456, 789])
@@ -183,13 +205,17 @@ class ProjectsModule(PaginationMixin, ThreadingMixin):
             ...     print(p['data']['attributes']['title'])
         """
         def fetch_project(pid):
-            return self.get(pid, include)
+            return self.get(pid, include, return_pandas=False)
         
-        return self._execute_parallel(
+        projetos = self._execute_parallel(
             fetch_project,
             project_ids,
             self._threading_config
         )
+        
+        if return_pandas:
+            return to_dataframe(projetos)
+        return projetos
     
     def create(
         self,

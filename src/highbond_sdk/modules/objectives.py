@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any, List, Generator
 from ..http_client import HighBondHTTPClient, PaginationMixin, ThreadingMixin
 from ..config import PaginationConfig, ThreadingConfig
 from ..enums import ObjectiveType
+from ..utils import to_dataframe
 
 
 class ObjectivesModule(PaginationMixin, ThreadingMixin):
@@ -38,52 +39,15 @@ class ObjectivesModule(PaginationMixin, ThreadingMixin):
         """Endpoint base para objetivos de um projeto."""
         return f"/orgs/{self._org_id}/projects/{project_id}/objectives"
     
-    def list_by_project(
-        self,
-        project_id: int,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Lista objetivos de um projeto com paginação manual.
-        
-        Args:
-            project_id: ID do projeto.
-            page: Número da página (1-based).
-            page_size: Itens por página (máximo 100).
-            include: Relacionamentos para incluir.
-            filters: Filtros adicionais.
-            
-        Returns:
-            Resposta completa da API.
-            
-        Example:
-            >>> response = client.objectives.list_by_project(123)
-            >>> for obj in response['data']:
-            ...     print(obj['attributes']['title'])
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        return self._http_client.get(self._base_endpoint(project_id), params)
     
-    def list_all_by_project(
+    def list_by_project(
         self,
         project_id: int,
         include: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        max_pages: Optional[int] = None
-    ) -> Generator[Dict[str, Any], None, None]:
+        max_pages: Optional[int] = None,
+        return_pandas: bool = False
+    ) -> List[Dict[str, Any]]:
         """Lista todos os objetivos de um projeto com paginação automática.
         
         Args:
@@ -91,9 +55,10 @@ class ObjectivesModule(PaginationMixin, ThreadingMixin):
             include: Relacionamentos para incluir.
             filters: Filtros adicionais.
             max_pages: Máximo de páginas.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna uma lista.
             
-        Yields:
-            Cada objetivo individualmente.
+        Returns:
+            Lista de objetivos ou DataFrame.
             
         Example:
             >>> for obj in client.objectives.list_all_by_project(123):
@@ -111,15 +76,20 @@ class ObjectivesModule(PaginationMixin, ThreadingMixin):
             for key, value in filters.items():
                 params[f"filter[{key}]"] = value
         
-        yield from self._paginate(
+        objetivos = list(self._paginate(
             self._base_endpoint(project_id), pagination, params
-        )
+        ))
+        
+        if return_pandas:
+            return to_dataframe(objetivos)
+        return objetivos
     
     def get(
         self,
         project_id: int,
         objective_id: int,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> Dict[str, Any]:
         """Obtém um objetivo específico.
         
@@ -127,9 +97,10 @@ class ObjectivesModule(PaginationMixin, ThreadingMixin):
             project_id: ID do projeto.
             objective_id: ID do objetivo.
             include: Relacionamentos para incluir.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna um dict.
             
         Returns:
-            Dados do objetivo.
+            Dados do objetivo ou DataFrame.
             
         Example:
             >>> obj = client.objectives.get(123, 456)
@@ -141,7 +112,12 @@ class ObjectivesModule(PaginationMixin, ThreadingMixin):
         if include:
             params["include"] = ",".join(include)
         
-        return self._http_client.get(endpoint, params if params else None)
+        response = self._http_client.get(endpoint, params if params else None)
+        
+        if return_pandas:
+            data = response.get('data', {})
+            return to_dataframe([data] if isinstance(data, dict) else data)
+        return response
     
     def create(
         self,

@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any, List, Generator
 from ..http_client import HighBondHTTPClient, PaginationMixin, ThreadingMixin
 from ..config import PaginationConfig, ThreadingConfig
 
+from ..utils import to_dataframe
 
 class RisksModule(PaginationMixin, ThreadingMixin):
     """Módulo para gerenciamento de Riscos no HighBond.
@@ -38,174 +39,125 @@ class RisksModule(PaginationMixin, ThreadingMixin):
         """Endpoint base para riscos a nível de organização."""
         return f"/orgs/{self._org_id}/risks"
     
-    def _project_endpoint(self, project_id: int) -> str:
-        """Endpoint base para riscos de um projeto."""
-        return f"/orgs/{self._org_id}/projects/{project_id}/risks"
-    
-    def _objective_endpoint(self, project_id: int, objective_id: int) -> str:
+    def _objective_endpoint(self, objective_id: int) -> str:
         """Endpoint base para riscos de um objetivo."""
         return (
-            f"/orgs/{self._org_id}/projects/{project_id}"
-            f"/objectives/{objective_id}/risks"
+            f"/orgs/{self._org_id}/objectives/{objective_id}/risks"
         )
     
     # ==================== LISTAGEM ====================
     
-    def list(
-        self,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Lista todos os riscos da organização com paginação manual.
-        
-        Args:
-            page: Número da página (1-based).
-            page_size: Itens por página (máximo 100).
-            include: Relacionamentos para incluir (ex: ['controls', 'owner']).
-            filters: Filtros adicionais.
-            
-        Returns:
-            Resposta completa da API com data, meta e links.
-            
-        Example:
-            >>> response = client.risks.list(page=1, page_size=25)
-            >>> for risk in response['data']:
-            ...     print(risk['attributes']['title'])
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        return self._http_client.get(self._org_endpoint, params)
     
     def list_all(
         self,
         include: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        max_pages: Optional[int] = None
-    ) -> Generator[Dict[str, Any], None, None]:
-        """Lista todos os riscos da organização com paginação automática.
-        
-        Args:
-            include: Relacionamentos para incluir.
-            filters: Filtros adicionais.
-            max_pages: Máximo de páginas a buscar.
-            
-        Yields:
-            Cada risco individualmente.
-            
-        Example:
-            >>> for risk in client.risks.list_all():
-            ...     print(risk['attributes']['title'])
+        max_pages: Optional[int] = None,
+        return_pandas: bool = False
+    ) -> List[Dict[str, Any]]:
         """
-        pagination = PaginationConfig(
-            page_size=self._pagination_config.page_size,
-            max_pages=max_pages or self._pagination_config.max_pages
+        Lista todos os riscos da organização: busca todos os projetos, depois todos os objetivos de cada projeto (em paralelo), e então todos os riscos de cada objetivo (em paralelo).
+        """
+        from .projects import ProjectsModule
+        from .objectives import ObjectivesModule
+        # 1. Buscar todos os projetos
+        projects_module = ProjectsModule(
+            self._http_client,
+            self._org_id,
+            self._pagination_config,
+            self._threading_config
         )
-        
-        params = {}
-        if include:
-            params["include"] = ",".join(include)
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        yield from self._paginate(self._org_endpoint, pagination, params)
+        all_projects = list(projects_module.list_all())
+
+        # Criar um mapa de objetivo_id para project_id
+        objective_to_project = {}
+
+        # 2. Buscar todos os objetivos de todos os projetos em paralelo
+        objectives_module = ObjectivesModule(
+            self._http_client,
+            self._org_id,
+            self._pagination_config,
+            self._threading_config
+        )
+        def fetch_objectives(proj):
+            objetivos = list(objectives_module.list_all_by_project(proj["id"]))
+            for obj in objetivos:
+                objective_to_project[obj["id"]] = proj["id"]
+            return objetivos
+        all_objectives_nested = self._execute_parallel(
+            fetch_objectives,
+            all_projects,
+            self._threading_config
+        )
+        all_objectives = [obj for sublist in all_objectives_nested for obj in sublist]
+
+        # 3. Buscar todos os riscos de todos os objetivos em paralelo
+        def fetch_risks(obj):
+            riscos_obj = self.list_by_objective(
+                objective_id=obj["id"],
+                include=include
+            )
+            if isinstance(riscos_obj, dict) and "data" in riscos_obj:
+                for risco in riscos_obj["data"]:
+                    risco["project_id"] = objective_to_project.get(obj["id"])
+                return riscos_obj["data"]
+            return []
+        all_risks_nested = self._execute_parallel(
+            fetch_risks,
+            all_objectives,
+            self._threading_config
+        )
+        all_risks = [r for sublist in all_risks_nested for r in sublist]
+
+        if return_pandas:
+            return to_dataframe(all_risks)
+        return all_risks
+    
+
     
     def list_by_project(
         self,
         project_id: int,
-        page: int = 1,
-        page_size: int = 50,
-        include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Lista riscos de um projeto específico.
-        
-        Args:
-            project_id: ID do projeto.
-            page: Número da página.
-            page_size: Itens por página.
-            include: Relacionamentos para incluir.
-            filters: Filtros adicionais.
-            
-        Returns:
-            Resposta completa da API.
-            
-        Example:
-            >>> response = client.risks.list_by_project(123)
-            >>> print(f"Total de riscos: {len(response['data'])}")
-        """
-        params = {
-            "page[number]": self._encode_page_number(page),
-            "page[size]": min(page_size, 100)
-        }
-        
-        if include:
-            params["include"] = ",".join(include)
-        
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        return self._http_client.get(self._project_endpoint(project_id), params)
-    
-    def list_all_by_project(
-        self,
-        project_id: int,
         include: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        max_pages: Optional[int] = None
-    ) -> Generator[Dict[str, Any], None, None]:
-        """Lista todos os riscos de um projeto com paginação automática.
-        
-        Args:
-            project_id: ID do projeto.
-            include: Relacionamentos para incluir.
-            filters: Filtros adicionais.
-            max_pages: Máximo de páginas.
-            
-        Yields:
-            Cada risco individualmente.
+        return_pandas: bool = False
+    ) -> List[Dict[str, Any]]:
         """
-        pagination = PaginationConfig(
-            page_size=self._pagination_config.page_size,
-            max_pages=max_pages or self._pagination_config.max_pages
+        Lista todos os riscos de um projeto (buscando todos os objetivos e seus riscos).
+        """
+        from .objectives import ObjectivesModule
+        objectives_module = ObjectivesModule(
+            self._http_client,
+            self._org_id,
+            self._pagination_config,
+            self._threading_config
         )
-        
-        params = {}
-        if include:
-            params["include"] = ",".join(include)
-        if filters:
-            for key, value in filters.items():
-                params[f"filter[{key}]"] = value
-        
-        yield from self._paginate(
-            self._project_endpoint(project_id), pagination, params
-        )
+        objetivos = list(objectives_module.list_all_by_project(project_id))
+        riscos = []
+        for obj in objetivos:
+            riscos_obj = self.list_by_objective(
+                objective_id=obj["id"],
+                include=include
+            )
+            if isinstance(riscos_obj, dict) and "data" in riscos_obj:
+                riscos.extend(riscos_obj["data"])
+        if return_pandas:
+            return to_dataframe(riscos)
+        return riscos
+    
+    # ==================== LISTAGEM POR OBJETIVO ====================
     
     def list_by_objective(
         self,
-        project_id: int,
         objective_id: int,
         page: int = 1,
         page_size: int = 50,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> Dict[str, Any]:
         """Lista riscos de um objetivo específico.
         
         Args:
-            project_id: ID do projeto.
             objective_id: ID do objetivo.
             page: Número da página.
             page_size: Itens por página.
@@ -222,7 +174,10 @@ class RisksModule(PaginationMixin, ThreadingMixin):
         if include:
             params["include"] = ",".join(include)
         
-        endpoint = self._objective_endpoint(project_id, objective_id)
+        endpoint = self._objective_endpoint(objective_id)
+        if return_pandas:
+            response = self._http_client.get(endpoint, params)
+            return to_dataframe(response)
         return self._http_client.get(endpoint, params)
     
     # ==================== OBTENÇÃO ====================
@@ -230,7 +185,8 @@ class RisksModule(PaginationMixin, ThreadingMixin):
     def get(
         self,
         risk_id: int,
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> Dict[str, Any]:
         """Obtém um risco específico por ID.
         
@@ -250,13 +206,17 @@ class RisksModule(PaginationMixin, ThreadingMixin):
         
         if include:
             params["include"] = ",".join(include)
+        if return_pandas:
+            response = self._http_client.get(endpoint, params)
+            return to_dataframe(response)
         
         return self._http_client.get(endpoint, params if params else None)
     
     def get_many(
         self,
         risk_ids: List[int],
-        include: Optional[List[str]] = None
+        include: Optional[List[str]] = None,
+        return_pandas: bool = False
     ) -> List[Dict[str, Any]]:
         """Obtém múltiplos riscos em paralelo.
         
@@ -269,6 +229,14 @@ class RisksModule(PaginationMixin, ThreadingMixin):
         """
         def fetch_risk(rid):
             return self.get(rid, include)
+        
+        if return_pandas:
+            risks = self._execute_parallel(
+                fetch_risk,
+                risk_ids,
+                self._threading_config
+            )
+            return to_dataframe(risks)
         
         return self._execute_parallel(
             fetch_risk,

@@ -8,6 +8,7 @@ from .enums import Region
 from .http_client import HighBondHTTPClient
 from .modules import (
     ProjectsModule,
+    ProjectTypesModule,
     ObjectivesModule,
     RisksModule,
     ControlsModule,
@@ -22,6 +23,7 @@ class HighBondClient:
     
     Attributes:
         projects: Módulo para gerenciamento de projetos.
+        project_types: Módulo para gerenciamento de tipos de projeto.
         objectives: Módulo para gerenciamento de objetivos.
         risks: Módulo para gerenciamento de riscos.
         controls: Módulo para gerenciamento de controles.
@@ -48,7 +50,7 @@ class HighBondClient:
         ...     severity="high"
         ... )
     """
-    
+     
     def __init__(
         self,
         token: str,
@@ -128,6 +130,12 @@ class HighBondClient:
             self._config.pagination,
             self._config.threading
         )
+        self._project_types = ProjectTypesModule(
+            self._http_client,
+            self._config.api.org_id,
+            self._config.pagination,
+            self._config.threading
+        )
         self._objectives = ObjectivesModule(
             self._http_client,
             self._config.api.org_id,
@@ -157,6 +165,11 @@ class HighBondClient:
     def projects(self) -> ProjectsModule:
         """Módulo de Projetos."""
         return self._projects
+    
+    @property
+    def project_types(self) -> ProjectTypesModule:
+        """Módulo de Tipos de Projeto."""
+        return self._project_types
     
     @property
     def objectives(self) -> ObjectivesModule:

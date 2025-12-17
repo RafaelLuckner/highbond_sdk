@@ -1,6 +1,34 @@
 
 # Changelog
 
+## [0.0.3] - 2025-12-17
+### Added
+- Suporte completo a retorno de dados em formato DataFrame (pandas) em **TODOS** os módulos:
+  - **ProjectsModule**: `list()`, `list_all()`, `get()` e `get_many()` agora aceitam parâmetro `return_pandas=True`
+  - **ObjectivesModule**: `list_by_project()`, `list_all_by_project()` e `get()` agora aceitam parâmetro `return_pandas=True`
+  - **IssuesModule**: `list()`, `list_all()`, `list_by_project()`, `list_all_by_project()`, `list_by_objective()`, `get()` e `get_many()` agora aceitam parâmetro `return_pandas=True`
+  - **RisksModule**: `list_all()`, `list_by_project()`, `list_by_objective()`, `get()` e `get_many()` com suporte a `return_pandas=True`
+  - **ControlsModule**: `list_all()`, `list_by_project()`, `list_by_objective()`, `get()` e `get_many()` com suporte a `return_pandas=True`
+  - **ProjectTypesModule**: `list()`, `list_all()`, `get()` e `get_many()` com suporte a `return_pandas=True`
+- Campo `project_id` adicionado automaticamente em riscos retornados pelos métodos `list_all()` e `list_by_project()` para melhor rastreabilidade
+
+### Changed
+- **Todos os `list_all*()` methods**: Conversão de Generator para `List[Dict]` em todos os módulos para melhor suporte a operações de transformação e conversão para DataFrame
+  - `ProjectsModule.list_all()`
+  - `ObjectivesModule.list_all_by_project()`
+  - `IssuesModule.list_all()`
+  - `IssuesModule.list_all_by_project()`
+  - `RisksModule.list_all()`
+  - `RisksModule.list_by_project()`
+  - `ControlsModule.list_all()`
+  - `ControlsModule.list_by_project()`
+  - `ProjectTypesModule.list_all()`
+- `ControlsModule.list_by_project()` reformulado para buscar todos os objetivos do projeto e depois seus controles (segue hierarquia correta da API)
+- Todos os docstrings atualizados para refletir o novo parâmetro `return_pandas` e as mudanças de retorno
+
+### Fixed
+- Corrigido erro 404 em `ControlsModule.list_by_project()` - controles não existem diretamente em projetos, mas apenas dentro de objetivos
+
 ## [0.0.2] - 2025-12-16
 ### Changed
 - O método `ProjectsModule.create()` agora imprime automaticamente explicações detalhadas, lista de tipos de projeto válidos e sugestões de correção ao ocorrer erro de validação (422), sem necessidade de try/except pelo usuário.
