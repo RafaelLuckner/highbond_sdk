@@ -127,104 +127,9 @@ class ProjectTypesModule(PaginationMixin, ThreadingMixin):
             return to_dataframe(project_types)
         return project_types
     
-    def create(
-        self,
-        name: str,
-        description: Optional[str] = None,
-        certification: Optional[bool] = None,
-        control_performance: Optional[bool] = None,
-        risk_assurance: Optional[bool] = None
-    ) -> Dict[str, Any]:
-        """Cria um novo tipo de projeto.
-        
-        Args:
-            name: Nome do tipo de projeto (obrigatório).
-            description: Descrição do tipo de projeto.
-            certification: Habilitar certificações (requer System Admin + Professional).
-            control_performance: Habilitar control performance.
-            risk_assurance: Habilitar risk assurance.
-            
-        Returns:
-            Dados do tipo de projeto criado.
-            
-        Example:
-            >>> pt = client.project_types.create(
-            ...     name="Auditoria Interna",
-            ...     description="Tipo para auditorias internas",
-            ...     certification=True
-            ... )
-        """
-        attributes = {"name": name}
-        
-        optional_attrs = {
-            "description": description,
-            "certification": certification,
-            "control_performance": control_performance,
-            "risk_assurance": risk_assurance
-        }
-        
-        for key, value in optional_attrs.items():
-            if value is not None:
-                attributes[key] = value
-        
-        payload = {
-            "data": {
-                "type": "project_types",
-                "attributes": attributes
-            }
-        }
-        
-        return self._http_client.post(self._base_endpoint, payload)
+
     
-    def update(
-        self,
-        project_type_id: int,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        certification: Optional[bool] = None,
-        control_performance: Optional[bool] = None,
-        risk_assurance: Optional[bool] = None
-    ) -> Dict[str, Any]:
-        """Atualiza um tipo de projeto existente.
-        
-        Args:
-            project_type_id: ID do tipo de projeto a atualizar.
-            name: Novo nome.
-            description: Nova descrição.
-            certification: Habilitar/desabilitar certificações.
-            control_performance: Habilitar/desabilitar control performance.
-            risk_assurance: Habilitar/desabilitar risk assurance.
-            
-        Returns:
-            Dados do tipo de projeto atualizado.
-            
-        Example:
-            >>> pt = client.project_types.update(
-            ...     project_type_id=123,
-            ...     name="Auditoria Externa"
-            ... )
-        """
-        attributes = {}
-        
-        optional_attrs = {
-            "name": name,
-            "description": description,
-            "certification": certification,
-            "control_performance": control_performance,
-            "risk_assurance": risk_assurance
-        }
-        
-        for key, value in optional_attrs.items():
-            if value is not None:
-                attributes[key] = value
-        
-        payload = {
-            "data": {
-                "type": "project_types",
-                "id": str(project_type_id),
-                "attributes": attributes
-            }
-        }
+
         
         endpoint = f"{self._base_endpoint}/{project_type_id}"
         return self._http_client.patch(endpoint, payload)
@@ -247,20 +152,3 @@ class ProjectTypesModule(PaginationMixin, ThreadingMixin):
         endpoint = f"{self._base_endpoint}/{project_type_id}"
         return self._http_client.delete(endpoint)
     
-    def delete_many(self, project_type_ids: List[int]) -> List[Dict[str, Any]]:
-        """Exclui múltiplos tipos de projeto em paralelo.
-        
-        Args:
-            project_type_ids: Lista de IDs de tipos de projeto a excluir.
-            
-        Returns:
-            Lista de respostas da API.
-            
-        Warning:
-            Esta ação é irreversível!
-        """
-        return self._execute_parallel(
-            self.delete,
-            project_type_ids,
-            self._threading_config
-        )

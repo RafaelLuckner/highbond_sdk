@@ -1,27 +1,31 @@
 # HighBond SDK
 
-[![Version](https://img.shields.io/badge/version-0.0.7-blue.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-0.0.8-blue.svg)](https://github.com)
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Versão 0.0.7** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
+**Versão 0.0.8** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
 
-## ✨ Features
+## Features
 
-- 🚀 **Paginação automática** - Itera sobre milhares de registros sem se preocupar com paginação
-- ⚡ **Multithreading** - Busca múltiplos recursos em paralelo para máxima performance
-- 🔄 **Retry automático** - Tratamento inteligente de rate limits e erros de conexão
-- 📊 **DataFrames** - Retorne dados em formato pandas DataFrame para análise rápida
-- 🛡️ **Tratamento de erros** - Exceções específicas para cada tipo de erro
+-  **Paginação automática** - Itera sobre milhares de registros sem se preocupar com paginação
+-  **Multithreading** - Busca múltiplos recursos em paralelo para máxima performance
+-  **Retry automático** - Tratamento inteligente de rate limits e erros de conexão
+-  **DataFrames** - Retorne dados em formato pandas DataFrame para análise rápida
+-  **Tratamento de erros** - Exceções específicas para cada tipo de erro
 
-## 📦 Instalação
+## Instalação
 
 ```bash
 pip install highbond-sdk
 ```
 
+## Exemplo de Uso 
 
-## 🚀 Quick Start
+📓 **[Exemplos de Uso - Jupyter Notebook](./Exemplos%20de%20Uso.ipynb)** - Veja exemplos práticos e detalhados de uso da SDK
+
+
+## Quick Start
 
 ```python
 from highbond_sdk import HighBondClient
@@ -82,8 +86,6 @@ print(df_controles_projeto)
 df_controles_objetivo = client.controls.list_by_objective(objective_id=1924816, return_pandas=True)
 print(df_controles_objetivo)
 ```
-
-## 📖 Documentação Completa
 
 ### Configuração Avançada
 
@@ -345,8 +347,8 @@ nova = client.issues.create(
 nova = client.issues.create(
     project_id=546355,
     description="Descrição da issue",
+    owner="Desconhecido",
     deficiency_type="Significant Deficiency",
-    owner_user_uid="3NQ6XzAUxqJMnAQ7n4KF",
     severity="Critical"
 )
 
@@ -356,137 +358,14 @@ client.issues.update(
     remediation_status="Closed",
     actual_remediation_date="2024-06-15"
 )
-
-# Fechar issue
-client.issues.close(issue_id=999)
-
-# Reabrir issue
-client.issues.reopen(issue_id=999)
 ```
-
-## 💡 Exemplos Práticos
-
-### Exemplo 1: Análise de Riscos por Projeto
-
-```python
-from highbond_sdk import HighBondClient
-
-client = HighBondClient(
-    token="seu_token",
-    org_id=12345,
-    region="us"
-)
-
-# Obter todos os riscos como DataFrame
-df_riscos = client.risks.list_all(return_pandas=True)
-
-# Filtrar por project_id
-project_id = 546355
-riscos_projeto = df_riscos[df_riscos['project_id'] == project_id]
-
-# Agrupar por impacto
-print("Riscos por Impacto:")
-print(riscos_projeto.groupby('attributes.impact').size())
-
-# Exportar para CSV
-riscos_projeto.to_csv('riscos_projeto.csv', index=False)
-```
-
-### Exemplo 2: Controles não Vinculados a Riscos
-
-```python
-# Obter todos os controles
-df_controles = client.controls.list_all(return_pandas=True)
-
-# Identificar controles que podem precisar de riscos
-print(f"Total de controles: {len(df_controles)}")
-
-# Verificar status de implementação
-print("\nControles por Status:")
-print(df_controles['attributes.status'].value_counts())
-```
-
-### Exemplo 3: Criar Múltiplos Riscos em Paralelo
-
-```python
-# Listar objetivos
-objetivos = client.objectives.list_all_by_project(project_id=546355)
-
-# Criar riscos para cada objetivo
-for objetivo in objetivos:
-    risco = client.risks.create(
-        objective_id=objetivo['id'],
-        description=f"Risco padrão para {objetivo['attributes']['title']}",
-        title=f"Risco - {objetivo['attributes']['title']}",
-        impact="Medium",
-        likelihood="Medium"
-    )
-    print(f"Risco criado para objetivo {objetivo['id']}")
-```
-
-### Exemplo 4: Dashboard com Estatísticas
-
-```python
-import pandas as pd
-
-client = HighBondClient(token="seu_token", org_id=12345, region="us")
-
-# Coletar dados
-df_projetos = client.projects.list_all(return_pandas=True)
-df_riscos = client.risks.list_all(return_pandas=True)
-df_controles = client.controls.list_all(return_pandas=True)
-
-print("=" * 50)
-print("DASHBOARD HIGHBOND")
-print("=" * 50)
-
-print(f"\nTotal de Projetos: {len(df_projetos)}")
-print(f"Total de Riscos: {len(df_riscos)}")
-print(f"Total de Controles: {len(df_controles)}")
-
-print("\nRiscos por Impacto:")
-print(df_riscos['attributes.impact'].value_counts())
-
-
-print("\nProjetos Ativos:")
-ativos = df_projetos[df_projetos['attributes.status'] == 'active']
-print(f"{len(ativos)} projetos")
-```
-
-## 🔧 Regiões Suportadas
-
-| Região | Valor | URL Base |
-|--------|-------|----------|
-| Estados Unidos | `us` | https://apis-us.highbond.com/v1 |
-| Europa | `eu` | https://apis-eu.highbond.com/v1 |
-| Austrália | `au` | https://apis-au.highbond.com/v1 |
-| Canadá | `ca` | https://apis-ca.highbond.com/v1 |
-| América do Sul | `sa` | https://apis-sa.diligentoneplatform.com/v1 |
-
-## 📊 Valores de Campos Configuráveis
-
-A maioria dos campos da API HighBond usa **strings configuráveis** no project type.
-Os valores abaixo são **exemplos comuns** - verifique as opções disponíveis no seu project type:
-
-| Campo | Exemplos de Valores |
-|-------|---------------------|
-| `deficiency_type` | "Deficiency", "Significant Deficiency", "Material Weakness" |
-| `severity` | "High", "Medium", "Low", "Critical" |
-| `impact`/`likelihood` | "High", "Medium", "Low", "Very High", "Very Low" |
-| `frequency` | "Daily", "Weekly", "Monthly", "Quarterly", "Annually" |
-| `control_type` | "Application/System Control", "Manual Control" |
-| `prevent_detect` | "Prevent", "Detect", "N/A" |
-| `remediation_status` | "Opened", "In Progress", "Closed" |
-| `scope` | "Local", "Regional", "Enterprise" |
 
 ## 📋 Requisitos
 
 - Python 3.8+
 - requests >= 2.28.0
+- pandas>=1.0.0 
 
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Por favor, abra uma issue ou pull request.
 
 ## 📄 Licença
 

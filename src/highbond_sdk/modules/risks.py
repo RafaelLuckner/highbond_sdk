@@ -370,8 +370,8 @@ class RisksModule(PaginationMixin, ThreadingMixin):
             impact: Classificação de impacto (ex: "High", "Medium", "Low").
             likelihood: Probabilidade (ex: "High", "Medium", "Low").
             position: Nova ordem de exibição (1-2147483647).
-            custom_attributes: Atributos customizados.
-            custom_factors: Fatores de risco customizados.
+            custom_attributes: Atributos customizados, formato [{ "term": "Fator", "value": ["valor"]}].
+            custom_factors: Fatores de risco customizados, formato [{ "term": "Fator", "value": ["valor"]}].
             owner_user_uid: UID do usuário responsável (sobrescreve owner).
             
         Returns:

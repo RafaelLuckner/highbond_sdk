@@ -1,6 +1,11 @@
 
 # Changelog
 
+## [0.0.8] - 2025-12-20
+### Changed
+- Removidos métodos de coleta de issues atrasadas
+- Criado notebook de exemplos 
+
 ## [0.0.7] - 2025-12-17
 ### Changed
 - Removidos métodos de conexão entre riscos e controles por não haver endpoint para tal
