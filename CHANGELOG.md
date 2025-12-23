@@ -1,6 +1,28 @@
 
 # Changelog
 
+## [0.0.9] - 2025-12-22
+### Added
+- **ProjectTypesModule**: Novos métodos para gerenciamento completo de tipos de projeto:
+  - `get_custom_attributes()` - Obtém custom_attributes via endpoint dedicado `/custom_attributes` (corrigido para usar endpoint correto da API)
+  - `create_custom_attribute()` - Cria um novo custom_attribute (POST) com suporte a todos os tipos:
+    - `customizable_type`: CustomControlAttribute, CustomObjectiveAttribute, CustomRiskFactor, etc.
+    - `field_type`: select, multiselect, date, text, paragraph
+    - Suporte a `weight` para CustomRiskFactor
+    - Validações automáticas de campos obrigatórios
+  - `copy_project_type()` - Copia tipo de projeto na mesma organização
+  - `copy_to_organization()` - Copia tipo de projeto para outra organização incluindo:
+    - Atributos genéricos (project_terms, project_toggles, etc.)
+    - Custom_attributes via API
+  - `update()` - Atualiza um tipo de projeto (nome, descrição, habilitação, atributos)
+  - `delete()` - Remove um tipo de projeto
+
+### Fixed
+- `get_custom_attributes()` - Corrigido para usar o endpoint correto `/orgs/{org_id}/project_types/{project_type_id}/custom_attributes` ao invés de extrair do project_type
+
+### Changed
+- Notebook de testes criado com cobertura completa para todos os métodos de ProjectTypesModule
+
 ## [0.0.8] - 2025-12-20
 ### Changed
 - Removidos métodos de coleta de issues atrasadas

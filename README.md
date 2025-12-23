@@ -1,10 +1,10 @@
 # HighBond SDK
 
-[![Version](https://img.shields.io/badge/version-0.0.8-blue.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-0.0.9-blue.svg)](https://pypi.org/project/highbond-sdk/)
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Versão 0.0.8** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
+**Versão 0.0.9** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
 
 ## Features
 
@@ -22,7 +22,7 @@ pip install highbond-sdk
 
 ## Exemplo de Uso 
 
-📓 **[Exemplos de Uso - Jupyter Notebook](./Exemplos%20de%20Uso.ipynb)** - Veja exemplos práticos e detalhados de uso da SDK
+📓 **[Exemplos de Uso - Jupyter Notebook](./Exemplos%20de%20Uso.ipynb)** - Veja exemplos práticos e detalhados de uso da SDK (Apenas no Github)
 
 
 ## Quick Start
@@ -185,6 +185,43 @@ tipo = client.project_types.get(42)
 
 # Buscar múltiplos tipos em paralelo
 tipos = client.project_types.get_many([1, 2, 3])
+
+# Obter custom_attributes de um tipo de projeto
+custom_attrs = client.project_types.get_custom_attributes(project_type_id=42)  # int - ID do tipo de projeto
+
+# Criar um novo custom_attribute
+novo_attr = client.project_types.create_custom_attribute(
+    project_type_id=42,                              # int - ID do tipo de projeto
+    customizable_type='CustomObjectiveAttribute',   # str - Tipo: CustomObjectiveAttribute, CustomRiskFactor, etc.
+    term='Nível de Prioridade',                     # str - Nome exibido do atributo
+    field_type='select',                            # str - Tipo: select, multiselect, date, text, paragraph
+    options=['Baixa', 'Média', 'Alta'],             # list - Opções (obrigatório para select/multiselect)
+    required=True                                   # bool - Se o campo é obrigatório
+)
+
+# Copiar tipo de projeto na mesma organização
+copia = client.project_types.copy_project_type(
+    source_project_type_id=42,                      # int - ID do tipo original
+    name="Cópia do Tipo de Projeto"                 # str - Nome do novo tipo
+)
+
+# Copiar tipo de projeto para outra organização
+novo_tipo = client.project_types.copy_to_organization(
+    source_project_type_id=42,                      # int - ID do tipo na org origem
+    target_org_id=67890,                            # int - ID da organização destino
+    name="Tipo Copiado",                            # str - Nome do novo tipo
+    target_region="us"                              # str - Região: "us", "eu", "au", "ca", "sa"
+)
+
+# Atualizar tipo de projeto
+client.project_types.update(
+    project_type_id=42,                             # int - ID do tipo de projeto
+    name="Novo Nome",                               # str - Novo nome (opcional)
+    enable_creating_projects=True                   # bool - Habilitar criação de projetos
+)
+
+# Deletar tipo de projeto
+client.project_types.delete(project_type_id=42)
 ```
 
 ### Objectives
