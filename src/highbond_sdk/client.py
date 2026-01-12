@@ -13,6 +13,7 @@ from .modules import (
     RisksModule,
     ControlsModule,
     IssuesModule,
+    ActionsModule,
 )
 
 
@@ -28,6 +29,7 @@ class HighBondClient:
         risks: Módulo para gerenciamento de riscos.
         controls: Módulo para gerenciamento de controles.
         issues: Módulo para gerenciamento de issues.
+        actions: Módulo para gerenciamento de actions (ações).
     
     Example:
         >>> from highbond_sdk import HighBondClient
@@ -160,6 +162,12 @@ class HighBondClient:
             self._config.pagination,
             self._config.threading
         )
+        self._actions = ActionsModule(
+            self._http_client,
+            self._config.api.org_id,
+            self._config.pagination,
+            self._config.threading
+        )
     
     @property
     def projects(self) -> ProjectsModule:
@@ -190,6 +198,11 @@ class HighBondClient:
     def issues(self) -> IssuesModule:
         """Módulo de Issues."""
         return self._issues
+    
+    @property
+    def actions(self) -> ActionsModule:
+        """Módulo de Actions (Ações)."""
+        return self._actions
     
     @property
     def config(self) -> ClientConfig:

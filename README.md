@@ -4,7 +4,7 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Versão 0.0.9** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
+**Versão 0.0.9** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types**, **Issues** e **Actions**.
 
 ## Features
 
@@ -395,6 +395,55 @@ client.issues.update(
     remediation_status="Closed",
     actual_remediation_date="2024-06-15"
 )
+```
+
+### Actions
+
+> **IMPORTANTE**: Actions (ações) são criadas dentro de **Issues** para rastrear tarefas de remediação.
+> Campo obrigatório: `title`.
+
+```python
+# Listar todas as actions da organização
+actions = client.actions.list_all()
+
+# Listar actions de uma issue específica
+actions_issue = client.actions.list_by_issue(issue_id=999)
+
+# Listar actions de um projeto (busca todas as issues e suas actions)
+actions_projeto = client.actions.list_by_project(project_id=546355)
+
+# Como DataFrame
+actions_df = client.actions.list_all(return_pandas=True)
+
+# Buscar action
+action = client.actions.get(action_id=123)
+
+# Criar action
+nova_action = client.actions.create(
+    issue_id=999,
+    title="Implementar novo controle",
+    description="Descrição da ação de remediação",
+    owner="responsavel@empresa.com",
+    due_date="2024-12-31"
+)
+
+# OU usando UID do usuário (sobrescreve owner)
+nova_action = client.actions.create(
+    issue_id=999,
+    title="Revisar documentação",
+    owner_user_uid="3NQ6XzAUxqJMnAQ7n4KF",
+    due_date="2024-06-30"
+)
+
+# Atualizar action
+client.actions.update(
+    action_id=123,
+    completed=True,
+    completed_date="2024-06-15"
+)
+
+# Deletar action
+client.actions.delete(action_id=123)
 ```
 
 ## 📋 Requisitos
