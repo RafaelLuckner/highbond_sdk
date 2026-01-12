@@ -7,6 +7,7 @@ from .objectives import ObjectivesModule
 from .risks import RisksModule
 from .controls import ControlsModule
 from .issues import IssuesModule
+from .actions import ActionsModule
 
 __all__ = [
     "ProjectsModule",
@@ -15,4 +16,5 @@ __all__ = [
     "RisksModule",
     "ControlsModule",
     "IssuesModule",
+    "ActionsModule",
 ]
