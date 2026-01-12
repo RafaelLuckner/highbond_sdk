@@ -1,6 +1,37 @@
 
 # Changelog
 
+## [1.0.0] - 2026-01-12
+### Added
+- **ActionsModule**: Novo módulo para leitura e deleção de Ações (Actions):
+  - `list_all()` - Lista TODAS as ações da organização (busca todas as issues + ações com multithreading)
+  - `list_by_project()` - Lista ações de um projeto (busca todas as issues do projeto + ações com multithreading)
+  - `list_by_issue()` - Lista ações de uma issue específica com paginação automática
+  - `get()` - Obtém uma ação específica por ID via endpoint `/orgs/{org_id}/actions/{id}`
+  - `get_many()` - Busca múltiplas ações em paralelo via multithreading
+  - `get_many_by_issue()` - Busca múltiplas ações de uma issue em paralelo com detalhes completos
+  - `delete()` - Remove uma ação via endpoint `/orgs/{org_id}/actions/{id}`
+  - Suporte completo a paginação automática, multithreading e retorno como DataFrame
+
+### Changed
+- Versão SDK atualizada de 0.0.9 para 1.0.0
+- README atualizado com documentação completa do novo módulo ActionsModule
+- Descrição do projeto no pyproject.toml agora inclui "Actions" na lista de funcionalidades
+- Cliente HighBondClient agora inclui propriedade `client.actions` para acesso ao novo módulo
+- Status do projeto alterado para Production/Stable na descrição
+
+### Note
+- Ações são acessadas através de seus endpoints específicos
+- Endpoints utilizados:
+  - GET/DELETE: `/orgs/{org_id}/actions/{id}`
+  - GET: `/orgs/{org_id}/issues/{issue_id}/actions`
+- Criação e atualização de ações devem ser feitas diretamente via API ou interface HighBond
+- Multithreading é utilizado automaticamente em:
+  - `list_all()`: busca ações de todas as issues em paralelo
+  - `list_by_project()`: busca ações de todas as issues do projeto em paralelo
+  - `get_many()`: busca múltiplas ações por ID em paralelo
+  - `get_many_by_issue()`: busca detalhes de múltiplas ações em paralelo
+
 ## [0.0.9] - 2025-12-22
 ### Added
 - **ProjectTypesModule**: Novos métodos para gerenciamento completo de tipos de projeto:

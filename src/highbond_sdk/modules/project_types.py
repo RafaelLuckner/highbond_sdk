@@ -388,7 +388,7 @@ class ProjectTypesModule(PaginationMixin, ThreadingMixin):
         self,
         source_project_type_id: int,
         target_org_id: int,
-        name: str,
+        name: Optional[str] = None,
         description: Optional[str] = None,
         enable_creating_projects: bool = True,
         target_region: Optional[str] = None,
@@ -500,16 +500,23 @@ class ProjectTypesModule(PaginationMixin, ThreadingMixin):
             "data": {
                 "type": "project_types",
                 "attributes": {
-                    "name": name,
                     "workflow": original_workflow,
                     "enable_creating_projects": enable_creating_projects,
                 },
             }
         }
         
+        if name is not None:
+            create_payload["data"]["attributes"]["name"] = name
+        else :
+            create_payload["data"]["attributes"]["name"] = original_attributes.get('name', '')
+        
         if description is not None:
             create_payload["data"]["attributes"]["description"] = description
-        
+
+        else :
+            create_payload["data"]["attributes"]["description"] = original_attributes.get('description', '')
+
         # Criar o novo tipo usando o cliente da região destino
         new_type = target_http_client.post(target_endpoint, create_payload)
         new_type_id = new_type.get('data', {}).get('id')

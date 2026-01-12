@@ -1,10 +1,10 @@
 # HighBond SDK
 
-[![Version](https://img.shields.io/badge/version-0.0.9-blue.svg)](https://pypi.org/project/highbond-sdk/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://pypi.org/project/highbond-sdk/)
 [![Python Version](https://img.shields.io/pypi/pyversions/highbond-sdk.svg)](https://pypi.org/project/highbond-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Versão 0.0.9** - SDK Python em desenvolvimento para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types** e **Issues**.
+**Versão 1.0.0** - SDK Python para a API HighBond com suporte a **Projects**, **Objectives**, **Risks**, **Controls**, **Project Types**, **Issues** e **Actions**.
 
 ## Features
 
@@ -395,6 +395,40 @@ client.issues.update(
     remediation_status="Closed",
     actual_remediation_date="2024-06-15"
 )
+```
+
+### Actions
+
+> **IMPORTANTE**: Actions (Ações) são consultadas dentro de **Issues**.
+> Endpoints: GET/DELETE `/orgs/{org_id}/actions/{id}` | GET `/orgs/{org_id}/issues/{issue_id}/actions`
+
+```python
+# Listar TODAS as ações da organização (busca todas as issues + suas ações com multithreading)
+acoes_org = client.actions.list_all()
+
+# Listar ações como DataFrame
+df_acoes_org = client.actions.list_all(return_pandas=True)
+
+# Listar ações de um projeto (busca todas as issues do projeto + suas ações com multithreading)
+acoes_projeto = client.actions.list_by_project(project_id=546355)
+
+# Listar ações como DataFrame
+df_acoes_projeto = client.actions.list_by_project(project_id=546355, return_pandas=True)
+
+# Listar ações de uma issue específica
+acoes = client.actions.list_by_issue(issue_id=999)
+
+# Buscar ação específica por ID
+acao = client.actions.get(action_id=123)
+
+# Buscar múltiplas ações em paralelo
+acoes = client.actions.get_many([123, 124, 125])
+
+# Buscar múltiplas ações de uma issue em paralelo (detalhes completos)
+acoes_detalhadas = client.actions.get_many_by_issue(issue_id=999)
+
+# Deletar ação
+client.actions.delete(action_id=123)
 ```
 
 ## 📋 Requisitos

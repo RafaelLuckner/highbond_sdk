@@ -51,12 +51,25 @@ class RisksModule(PaginationMixin, ThreadingMixin):
     def list_all(
         self,
         include: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-        max_pages: Optional[int] = None,
         return_pandas: bool = False
     ) -> List[Dict[str, Any]]:
         """
         Lista todos os riscos da organização: busca todos os projetos, depois todos os objetivos de cada projeto (em paralelo), e então todos os riscos de cada objetivo (em paralelo).
+
+        Args:
+            include: Lista de relacionamentos para incluir nos resultados. 
+                - Se incluir 'objectives', cada risco retornado terá um campo 'objective' com os dados completos do objetivo relacionado.
+                - Se incluir 'projects', cada risco retornado terá um campo 'project' com os dados completos do projeto relacionado.
+                - Exemplo: include=['objectives', 'projects'] retorna riscos já enriquecidos com os dados de objetivo e projeto.
+            return_pandas: Se True, retorna um DataFrame; se False, retorna uma lista de dicionários.
+
+        Returns:
+            Lista de riscos, cada um podendo conter os dados de objetivo e projeto conforme o parâmetro include.
+
+        Example:
+            >>> risks = client.risks.list_all(include=['objectives', 'projects'])
+            >>> for risk in risks:
+            ...     print(risk['attributes']['title'], risk['objective']['attributes']['name'], risk['project']['attributes']['name'])
         """
         from .projects import ProjectsModule
         from .objectives import ObjectivesModule
@@ -109,10 +122,25 @@ class RisksModule(PaginationMixin, ThreadingMixin):
         )
         all_risks = [r for sublist in all_risks_nested for r in sublist]
 
+        # Criar dicionários para lookup rápido
+        objectives_dict = {obj["id"]: obj for obj in all_objectives}
+        projects_dict = {proj["id"]: proj for proj in all_projects}
+        
+        # Merge dos dados conforme include
+        for risk in all_risks:
+            if include:
+                if "objectives" in include:
+                    obj_id = risk.get("objective_id") or risk.get("objective", {}).get("id")
+                    if obj_id and obj_id in objectives_dict:
+                        risk["objective"] = objectives_dict[obj_id]
+                if "projects" in include:
+                    proj_id = risk.get("project_id")
+                    if proj_id and proj_id in projects_dict:
+                        risk["project"] = projects_dict[proj_id]
+
         if return_pandas:
             return to_dataframe(all_risks)
         return all_risks
-    
 
     
     def list_by_project(
@@ -124,6 +152,10 @@ class RisksModule(PaginationMixin, ThreadingMixin):
     ) -> List[Dict[str, Any]]:
         """
         Lista todos os riscos de um projeto (buscando todos os objetivos e seus riscos).
+
+        Args:
+            project_id: ID do projeto.
+            include: Relacionamentos para incluir.
         """
         from .objectives import ObjectivesModule
         objectives_module = ObjectivesModule(
